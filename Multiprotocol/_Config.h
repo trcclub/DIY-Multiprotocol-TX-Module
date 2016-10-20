@@ -126,13 +126,14 @@
 #define	DEVO_CYRF6936_INO
 #define	DSM_CYRF6936_INO
 #define	J6PRO_CYRF6936_INO
-#define	WK2x01_CYRF6936_INO
+//#define	J6PRO_CYRF6936_INO
+//#define	WK2x01_CYRF6936_INO
 
 //The protocols below need a CC2500 to be installed
 #define	FRSKYV_CC2500_INO
 #define	FRSKYD_CC2500_INO
 #define	FRSKYX_CC2500_INO
-#define	SFHSS_CC2500_INO
+//#define	SFHSS_CC2500_INO
 
 //The protocols below need a NRF24L01 to be installed
 #define	BAYANG_NRF24L01_INO
@@ -140,14 +141,14 @@
 #define	CX10_NRF24L01_INO		// Include Q2X2 protocol
 #define	ESKY_NRF24L01_INO
 #define	HISKY_NRF24L01_INO
-#define	KN_NRF24L01_INO
-#define	SLT_NRF24L01_INO
+//#define	KN_NRF24L01_INO
+//#define	SLT_NRF24L01_INO
 #define	SYMAX_NRF24L01_INO
-#define	V2X2_NRF24L01_INO
-#define	YD717_NRF24L01_INO
-#define	MT99XX_NRF24L01_INO
-#define	MJXQ_NRF24L01_INO
-#define	SHENQI_NRF24L01_INO
+//#define	V2X2_NRF24L01_INO
+//#define	YD717_NRF24L01_INO
+//#define	MT99XX_NRF24L01_INO
+//#define	MJXQ_NRF24L01_INO
+//#define	SHENQI_NRF24L01_INO
 #define	FY326_NRF24L01_INO
 #define	FQ777_NRF24L01_INO
 #define	ASSAN_NRF24L01_INO
@@ -292,15 +293,15 @@ const PPM_Parameters PPM_prot[15]=	{
 /*	3	*/	{MODE_FRSKYD,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	40		},	// option=fine freq tuning
 /*	4	*/	{MODE_HISKY	,	Hisky		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
 /*	5	*/	{MODE_V2X2	,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	6	*/	{MODE_DSM	,	DSMX_11		,	0	,	P_HIGH	,	NO_AUTOBIND	,	6		},	// option=number of channels
-/*	7	*/	{MODE_DSM	,	DSM2_22		,	0	,	P_HIGH	,	NO_AUTOBIND	,	6		},
-/*	8	*/	{MODE_YD717	,	YD717		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
+/*	6	*/	{MODE_DSM	,	DSM2_22		,	0	,	P_HIGH	,	NO_AUTOBIND	,	6		},	// option=number of channels
+/*	7	*/	{MODE_DEVO	,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
+/*	8	*/	{MODE_FQ777	,	0		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
 /*	9	*/	{MODE_KN	,	WLTOYS		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
 /*	10	*/	{MODE_SYMAX	,	SYMAX		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
 /*	11	*/	{MODE_SLT	,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
 /*	12	*/	{MODE_CX10	,	CX10_BLUE	,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	13	*/	{MODE_CG023	,	CG023		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	14	*/	{MODE_BAYANG,	BAYANG		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
+/*	13	*/	{MODE_FRSKYV	,	0		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
+/*	14	*/	{MODE_FRSKYX,	CH_16			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
 /*	15	*/	{MODE_SYMAX	,	SYMAX5C		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		}
 };
 /* Available protocols and associated sub protocols to pick and choose from
