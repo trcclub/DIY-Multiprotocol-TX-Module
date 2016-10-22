@@ -120,7 +120,7 @@
 //The protocols below need an A7105 to be installed
 #define	FLYSKY_A7105_INO
 #define	HUBSAN_A7105_INO
-#define	AFHDS2A_A7105_INO
+//#define	AFHDS2A_A7105_INO
 
 //The protocols below need a CYRF6936 to be installed
 #define	DEVO_CYRF6936_INO
