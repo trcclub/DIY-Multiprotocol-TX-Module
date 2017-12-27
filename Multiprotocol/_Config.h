@@ -63,7 +63,7 @@
 //Allow flashing multimodule directly with TX(erky9x or opentx modified firmwares)
 //Instructions: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/tree/master/BootLoaders#compiling--uploading-firmware-with-the-flash-from-tx-bootloader
 //To enable this feature remove the "//" on the next line.  Requires a compatible bootloader or upload method to be selected when you use the Multi 4-in-1 Boards Manager definitions.
-//#define CHECK_FOR_BOOTLOADER
+#define CHECK_FOR_BOOTLOADER
 
 /****************/
 /*** RF CHIPS ***/
@@ -80,10 +80,10 @@
 //Low power is reducing the transmit power of the multi module. This setting is configurable per model in PPM (table below) or Serial mode (radio GUI).
 //It can be activated when flying indoor or small models since the distance is short or if a model is causing issues when flying closed to the TX.
 //By default low power is completly disabled on all rf chips to prevent mistakes, but you can enable it by uncommenting the lines below: 
-//#define A7105_ENABLE_LOW_POWER
-//#define CYRF6936_ENABLE_LOW_POWER
-//#define CC2500_ENABLE_LOW_POWER
-//#define NRF24L01_ENABLE_LOW_POWER
+#define A7105_ENABLE_LOW_POWER
+#define CYRF6936_ENABLE_LOW_POWER
+#define CC2500_ENABLE_LOW_POWER
+#define NRF24L01_ENABLE_LOW_POWER
 
 //Fine tune of the A7105 LO base frequency
 // This is required for some A7105 modules and/or RXs with inaccurate crystal oscillator.
@@ -102,13 +102,13 @@
 //If you have 2 Multi modules which you want to share the same ID so you can use either to control the same RC model
 // then you can force the ID to a certain known value using the lines below.
 //Default is commented, you should uncoment only for test purpose or if you know exactly what you are doing!!!
-//#define FORCE_GLOBAL_ID	0x12345678
+#define FORCE_GLOBAL_ID	0x95e6452e
 
 //Protocols using the CYRF6936 (DSM, Devo, Walkera...) are using the CYRF ID instead which should prevent duplicated IDs.
 //If you have 2 Multi modules which you want to share the same ID so you can use either to control the same RC model
 // then you can force the ID to a certain known value using the lines below.
 //Default is commented, you should uncoment only for test purpose or if you know exactly what you are doing!!!
-//#define FORCE_CYRF_ID	"\x12\x34\x56\x78\x9A\xBC"
+#define FORCE_CYRF_ID	"\x95\xe6\x45\x2e\x9d\xfd"
 
 /****************************/
 /*** PROTOCOLS TO INCLUDE ***/
@@ -216,7 +216,7 @@
 
 //Uncomment to send Multi status and allow OpenTX to autodetect the telemetry format
 //Supported by OpenTX version 2.2 RC9 and newer. NOT supported by er9x/ersky9x use MULTI_STATUS instead.
-//#define MULTI_TELEMETRY
+#define MULTI_TELEMETRY
 
 //Comment a line to disable a specific protocol telemetry
 #define DSM_TELEMETRY				// Forward received telemetry packet directly to TX to be decoded
