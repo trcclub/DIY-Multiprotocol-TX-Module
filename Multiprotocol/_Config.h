@@ -22,8 +22,18 @@
 /********************/
 //If you know parameters you want for sure to be enabled or disabled which survives in future, you can use a file named "_MyConfig.h".
 //An example is given within the file named "_MyConfig.h.example" which needs to be renamed if you want to use it.
-//To enable this config file remove the // from the line below. It's automatically loaded if the file exists for the AVR platform but not STM32...
+//To enable this config file remove the // from the line below.
 //#define USE_MY_CONFIG
+
+
+/*************************/
+/*** BOOTLOADER USE     ***/
+/*************************/
+//Allow flashing multimodule directly with TX(erky9x or opentx modified firmwares)
+//Instructions: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/tree/master/BootLoaders#compiling--uploading-firmware-with-the-flash-from-tx-bootloader
+//To enable this feature remove the "//" on the next line.  Requires a compatible bootloader or upload method to be selected when you use the Multi 4-in-1 Boards Manager definitions.
+//#define CHECK_FOR_BOOTLOADER
+
 
 /*******************/
 /*** TX SETTINGS ***/
@@ -39,6 +49,9 @@
 //#define REVERSE_THROTTLE
 //#define REVERSE_RUDDER
 
+//DSM protocol is using by default the Spektrum throw of 1100..1900us @100% and 1000..2000us @125%.
+//For more throw, 1024..1976us @100% and 904..2096us @125%, remove the "//" on the line below. Be aware that too much throw can damage some UMX servos. To achieve standard throw in this mode use a channel weight of 84%.
+//#define DSM_MAX_THROW
 
 /*************************/
 /*** BIND FROM CHANNEL ***/
@@ -77,6 +90,36 @@
 #define CC2500_INSTALLED
 #define NRF24L01_INSTALLED
 
+/** OrangeRX TX **/
+//If you compile for the OrangeRX TX module you need to select the correct board type.
+//By default the compilation is done for the GREEN board, to switch to a BLUE board uncomment the line below by removing the "//"
+//#define ORANGE_TX_BLUE
+
+/** CC2500 Fine Frequency Tuning **/
+//For optimal performance the CC2500 RF module used by the FrSkyD, FrSkyV, FrSkyX, and SFHSS protocols needs to be tuned for each protocol.
+//Initial tuning should be done via the radio menu with a genuine FrSky or Futaba receiver.  
+//Once a good tuning value is found it can be set here and will override the radio's 'option' setting for all existing and new models which use that protocol.
+//For more information: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/tree/master/docs/Frequency_Tuning.md
+//Uncomment the lines below (remove the "//") and set an appropriate value (replace the "0") to enable. Valid range is -127 to +127.
+//#define FORCE_FRSKYD_TUNING	0
+//#define FORCE_FRSKYV_TUNING	0
+//#define FORCE_FRSKYX_TUNING	0
+//#define FORCE_SFHSS_TUNING	0
+//#define FORCE_CORONA_TUNING	0
+
+/** A7105 Fine Frequency Tuning **/
+//This is required in rare cases where some A7105 modules and/or RXs have an inaccurate crystal oscillator.
+//If using Serial mode only (for now), you can use CH15 to find the right tuning value. -100%=-300, 0%=default 0, +100%=+300.
+//Uncomment the line below (remove the "//") to enable this feature.
+//#define USE_A7105_CH15_TUNING
+
+//Once a good tuning value is found it can be set here and will override the frequency tuning for a specific protocol.
+//Uncomment the lines below (remove the "//") and set an appropriate value (replace the "0") to enable. Valid range is -300 to +300 and default is 0.
+//#define FORCE_FLYSKY_TUNING	0
+//#define FORCE_HUBSAN_TUNING	0
+//#define FORCE_AFHDS2A_TUNING	0
+
+/** Low Power **/
 //Low power is reducing the transmit power of the multi module. This setting is configurable per model in PPM (table below) or Serial mode (radio GUI).
 //It can be activated when flying indoor or small models since the distance is short or if a model is causing issues when flying closed to the TX.
 //By default low power is completly disabled on all rf chips to prevent mistakes, but you can enable it by uncommenting the lines below: 
@@ -85,14 +128,6 @@
 #define CC2500_ENABLE_LOW_POWER
 #define NRF24L01_ENABLE_LOW_POWER
 
-//Fine tune of the A7105 LO base frequency
-// This is required for some A7105 modules and/or RXs with inaccurate crystal oscillator.
-// The offset is in +/-kHz. Default value is 0.
-#define A7105_FREQ_OFFSET 0
-
-//If you compile for the OrangeRX TX module you need to select the correct board type.
-//By default the compilation is done for the GREEN board, to switch to a BLUE board uncomment the line below by removing the "//"
-//#define ORANGE_TX_BLUE
 
 /*****************/
 /*** GLOBAL ID ***/
@@ -109,6 +144,7 @@
 // then you can force the ID to a certain known value using the lines below.
 //Default is commented, you should uncoment only for test purpose or if you know exactly what you are doing!!!
 #define FORCE_CYRF_ID	"\x95\xe6\x45\x2e\x9d\xfd"
+
 
 /****************************/
 /*** PROTOCOLS TO INCLUDE ***/
@@ -134,6 +170,7 @@
 #define	FRSKYD_CC2500_INO
 #define	FRSKYX_CC2500_INO
 //#define	SFHSS_CC2500_INO
+//#define	CORONA_CC2500_INO
 
 //The protocols below need a NRF24L01 to be installed
 #define	BAYANG_NRF24L01_INO
@@ -160,6 +197,7 @@
 //#define	ESKY150_NRF24L01_INO
 //#define	H8_3D_NRF24L01_INO
 
+
 /**************************/
 /*** FAILSAFE SETTINGS  ***/
 /**************************/
@@ -181,18 +219,6 @@
 // You can force option b. by uncommenting the line below (remove the "//").
 //#define FAILSAFE_SERIAL_ONLY
 
-/*******************************/
-/*** CC2500 FREQUENCY TUNING ***/
-/*******************************/
-//For optimal performance the CC2500 RF module used by the FrSkyD, FrSkyV, FrSkyX, and SFHSS protocols needs to be tuned for each protocol.
-//Initial tuning should be done via the radio menu with a genuine FrSky or Futaba receiver.  
-//Once a good tuning value is found it can be set here and will override the radio's 'option' setting for all existing and new models which use that protocol.
-//For more information: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/tree/master/docs/Frequency_Tuning.md
-//Uncomment the lines below (remove the "//") and set an appropriate value (replace the "0") to enable.  Valid range is -127 to +127.
-//#define FORCE_FRSKYD_TUNING 0
-//#define FORCE_FRSKYV_TUNING 0
-//#define FORCE_FRSKYX_TUNING 0
-//#define FORCE_SFHSS_TUNING  0
 
 /**************************/
 /*** TELEMETRY SETTINGS ***/
@@ -234,15 +260,17 @@
 //!This is a work in progress!
 //#define SPORT_POLLING
 
+
 /****************************/
 /*** SERIAL MODE SETTINGS ***/
 /****************************/
 //In this section you can configure the serial mode.
-//The serial mode enables full editing of all the parameters in the GUI of the radio.
+//The serial mode enables full editing of all the parameters in the GUI of the radio. It is enabled by placing the rotary switch on position 0.
 //This is available natively for ER9X and ERSKY9X. It is available for OpenTX on Taranis with a special version.
 
 //If you do not plan to use the Serial mode comment this line using "//" to save Flash space
 #define ENABLE_SERIAL
+
 
 /*************************/
 /*** PPM MODE SETTINGS ***/
@@ -251,7 +279,7 @@
 //If you do not plan to use the PPM mode comment this line using "//" to save Flash space, you don't need to configure anything below in this case
 #define ENABLE_PPM
 
-/*** TX END POINTS ***/
+/** TX END POINTS **/
 //It is important for the module to know the endpoints of your radio.
 //Below are some standard transmitters already preconfigured.
 //Uncomment only the one which matches your transmitter.
@@ -267,15 +295,14 @@
 // A few things to consider:
 //  - If you put too big values compared to your TX you won't be able to reach the extremes which is bad for throttle as an example
 //  - If you put too low values you won't be able to use your full stick range, it will be maxed out before reaching the ends
-//  - Centered stick value is usually 1500. It should match the middle between MIN and MAX, ie Center=(MAX-MIN)/2+MIN. If your TX is not centered you can adjust the value MIN or MAX.
-//  - 100% is the value when the model is by default, 125% is the value when you extend the servo travel which is only used by some protocols
+//  - Centered stick value is usually 1500. It should match the middle between MIN and MAX, ie Center=(MAX+MIN)/2. If your TX is not centered you can adjust the value MIN or MAX.
+//  - 100% is referred as the value when the TX is set to default with no trims
 #if defined(TX_CUSTOM)
 	#define PPM_MAX_100	1900	//	100%
 	#define PPM_MIN_100	1100	//	100%
-	#define PPM_MAX_125	2000	//	125%
-	#define PPM_MIN_125	1000	//	125%
 #endif
 
+/** Number of PPM Channels **/
 // The line below is used to set the minimum number of channels which the module should receive to consider a PPM frame valid.
 // The default value is 4 to receive at least AETR for flying models but you could also connect the PPM from a car radio which has only 3 channels by changing this number to 3.
 #define MIN_PPM_CHANNELS 4
@@ -283,26 +310,109 @@
 // The default value is 16 to receive all possible channels but you might want to filter some "bad" channels from the PPM frame like the ones above 6 on the Walkera PL0811.
 #define MAX_PPM_CHANNELS 16
 
-//The table below indicates which protocol to run when a specific position on the dial has been selected.
-//All fields and values are explained below. Everything is configurable from here like in the Serial mode.
-//Example: You can associate multiple times the same protocol to different dial positions to take advantage of the model match (RX_Num)
-const PPM_Parameters PPM_prot[15]=	{
-//	Dial	Protocol 		Sub protocol	RX_Num	Power		Auto Bind		Option
-/*	1	*/	{MODE_FLYSKY,	Flysky		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	2	*/	{MODE_HUBSAN,	H107		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	3	*/	{MODE_FRSKYD,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	40		},	// option=fine freq tuning
-/*	4	*/	{MODE_HISKY	,	Hisky		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	5	*/	{MODE_V2X2	,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	6	*/	{MODE_DSM	,	DSM2_22		,	0	,	P_HIGH	,	NO_AUTOBIND	,	6		},	// option=number of channels
-/*	7	*/	{MODE_DEVO	,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	8	*/	{MODE_FQ777	,	0		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	9	*/	{MODE_KN	,	WLTOYS		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	10	*/	{MODE_SYMAX	,	SYMAX		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	11	*/	{MODE_SLT	,	0			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	12	*/	{MODE_CX10	,	CX10_BLUE	,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	13	*/	{MODE_FRSKYV	,	0		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	14	*/	{MODE_FRSKYX,	CH_16			,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		},
-/*	15	*/	{MODE_SYMAX	,	SYMAX5C		,	0	,	P_HIGH	,	NO_AUTOBIND	,	0		}
+
+//The table below indicates which protocol to run when a specific position on 
+//the dial has been selected.
+//Tip: You can associate multiple times the same protocol to different rotary switch positions to take advantage of the model match based on RX_Num
+
+//A system of banks enable the access to more protocols than positions on the rotary switch. Banks can be selected by placing the rotary switch on position 15, power up the module and
+// short press the bind button multiple times until you reach the desired one. The bank number currently selected is indicated by the number of LED flash.
+// Full procedure is located here: https://github.com/pascallanger/DIY-Multiprotocol-TX-Module/blob/master/Protocols_Details.md#protocol-selection-in-ppm-mode
+
+//The parameter below indicates the number of desired banks between 1 and 5. Default is 5.
+#define NBR_BANKS 5
+
+const PPM_Parameters PPM_prot[14*NBR_BANKS]=  {
+#if NBR_BANKS > 0
+//******************************       BANK 1       ******************************
+//    Switch  Protocol                Sub protocol    RX_Num  Power           Auto Bind               Option
+/*    1       */      {PROTO_FLYSKY,  Flysky          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    2       */      {PROTO_AFHDS2A, PWM_IBUS        ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },      // RX number 0
+/*    3       */      {PROTO_AFHDS2A, PWM_IBUS        ,       1       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },      // RX number 1
+/*    4       */      {PROTO_AFHDS2A, PWM_IBUS        ,       2       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },      // RX number 2
+/*    5       */      {PROTO_AFHDS2A, PWM_IBUS        ,       3       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },      // RX number 3
+/*    6       */      {PROTO_AFHDS2A, PWM_IBUS        ,       2       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },      // RX number 4
+/*    7       */      {PROTO_AFHDS2A, PWM_IBUS        ,       3       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },      // RX number 5
+/*    8       */      {PROTO_SFHSS,   H107            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    9       */      {PROTO_FRSKYV,  0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       40              },      // option=fine freq tuning
+/*    10      */      {PROTO_FRSKYD,  0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       40              },      // option=fine freq tuning
+/*    11      */      {PROTO_FRSKYX,  CH_16           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       40              },      // option=fine freq tuning
+/*    12      */      {PROTO_FRSKYX,  EU_16           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       40              },      // option=fine freq tuning
+/*    13      */      {PROTO_DEVO     ,       0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    14      */      {PROTO_WK2x01,  WK2801          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+#endif
+#if NBR_BANKS > 1
+//******************************       BANK 2       ******************************
+//    Switch  Protocol                Sub protocol    RX_Num  Power           Auto Bind               Option
+/*    1       */      {PROTO_DSM      ,       DSM2_11         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       6               },      // option=number of channels
+/*    2       */      {PROTO_DSM      ,       DSM2_22         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       6               },      // option=number of channels
+/*    3       */      {PROTO_DSM      ,       DSMX_11         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       6               },      // option=number of channels
+/*    4       */      {PROTO_DSM      ,       DSMX_22         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       6               },      // option=number of channels
+/*    5       */      {PROTO_DSM      ,       DSM2_11         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       8               },      // option=number of channels
+/*    6       */      {PROTO_DSM      ,       DSM2_22         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       8               },      // option=number of channels
+/*    7       */      {PROTO_DSM      ,       DSMX_11         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       8               },      // option=number of channels
+/*    8       */      {PROTO_DSM      ,       DSMX_22         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       8               },      // option=number of channels
+/*    9       */      {PROTO_SLT      ,       0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    10      */      {PROTO_HUBSAN,  H107            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    11      */      {PROTO_HUBSAN,  H301            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    12      */      {PROTO_HUBSAN,  H501            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    13      */      {PROTO_HISKY    ,       Hisky           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    14      */      {PROTO_V2X2     ,       0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+#endif
+#if NBR_BANKS > 2
+//******************************       BANK 3       ******************************
+//    Switch  Protocol                Sub protocol    RX_Num  Power           Auto Bind               Option
+/*    1       */      {PROTO_ESKY     ,       0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    2       */      {PROTO_ESKY150, 0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    3       */      {PROTO_ASSAN,   0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    4       */      {PROTO_CORONA,  COR_V2          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    5       */      {PROTO_SYMAX    ,       SYMAX           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    6       */      {PROTO_KN       ,       WLTOYS          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    7       */      {PROTO_BAYANG,  BAYANG          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    8       */      {PROTO_BAYANG,  H8S3D           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    9       */      {PROTO_BAYANG,  X16_AH          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    10      */      {PROTO_BAYANG,  IRDRONE         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    11      */      {PROTO_H8_3D,   H8_3D           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    12      */      {PROTO_H8_3D,   H20H            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    13      */      {PROTO_H8_3D,   H20MINI         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    14      */      {PROTO_H8_3D,   H30MINI         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+#endif
+#if NBR_BANKS > 3
+//******************************       BANK 4       ******************************
+//    Switch  Protocol                Sub protocol    RX_Num  Power           Auto Bind               Option
+/*    1       */      {PROTO_MJXQ     ,       WLH08           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    2       */      {PROTO_MJXQ     ,       X600            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    3       */      {PROTO_MJXQ     ,       X800            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    4       */      {PROTO_MJXQ     ,       H26D            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    5       */      {PROTO_MJXQ     ,       E010            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    6       */      {PROTO_MJXQ     ,       H26WH           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    7       */      {PROTO_HONTAI,  HONTAI          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    8       */      {PROTO_HONTAI,  JJRCX1          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    9       */      {PROTO_HONTAI,  X5C1            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    10      */      {PROTO_HONTAI,  FQ777_951       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    11      */      {PROTO_Q303     ,       Q303            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    12      */      {PROTO_Q303     ,       CX35            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    13      */      {PROTO_Q303     ,       CX10D           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    14      */      {PROTO_Q303     ,       CX10WD          ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+#endif
+#if NBR_BANKS > 4
+//******************************       BANK 5       ******************************
+//    Switch  Protocol                Sub protocol    RX_Num  Power           Auto Bind               Option
+/*    1       */      {PROTO_CX10     ,       CX10_GREEN      ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    2       */      {PROTO_CX10     ,       CX10_BLUE       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    3       */      {PROTO_CX10     ,       DM007           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    4       */      {PROTO_CX10     ,       JC3015_1        ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    5       */      {PROTO_CX10     ,       JC3015_2        ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    6       */      {PROTO_CX10     ,       MK33041         ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    7       */      {PROTO_Q2X2     ,       Q222            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    8       */      {PROTO_Q2X2     ,       Q242            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    9       */      {PROTO_Q2X2     ,       Q282            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    10      */      {PROTO_CG023,   CG023           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    11      */      {PROTO_CG023,   YD829           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    12      */      {PROTO_FQ777,   0                       ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    13      */      {PROTO_YD717,   YD717           ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+/*    14      */      {PROTO_MT99XX,  MT99            ,       0       ,       P_HIGH  ,       NO_AUTOBIND     ,       0               },
+#endif
 };
 /* Available protocols and associated sub protocols to pick and choose from
 	MODE_FLYSKY
@@ -311,136 +421,139 @@ const PPM_Parameters PPM_prot[15]=	{
 		V6X6
 		V912
 		CX20
-	MODE_HUBSAN
+	PROTO_HUBSAN
 		H107
 		H301
 		H501
-	MODE_FRSKYV
+	PROTO_FRSKYV
 		NONE
-	MODE_FRSKYD
+	PROTO_FRSKYD
 		NONE
-	MODE_FRSKYX
+	PROTO_FRSKYX
 		CH_16
 		CH_8
 		EU_16
 		EU_8
-	MODE_HISKY
+	PROTO_HISKY
 		Hisky
 		HK310
-	MODE_V2X2
+	PROTO_V2X2
 		V2X2
 		JXD506
-	MODE_DSM
+	PROTO_DSM
 		DSM2_22
 		DSM2_11
 		DSMX_22
 		DSMX_11
-	MODE_DEVO
+	PROTO_DEVO
 		NONE
-	MODE_YD717
+	PROTO_YD717
 		YD717
 		SKYWLKR
 		SYMAX4
 		XINXUN
 		NIHUI
-	MODE_KN
+	PROTO_KN
 		WLTOYS
 		FEILUN
-	MODE_SYMAX
+	PROTO_SYMAX
 		SYMAX
 		SYMAX5C
-	MODE_SLT
+	PROTO_SLT
 		NONE
-	MODE_CX10
+	PROTO_CX10
 		CX10_GREEN
 		CX10_BLUE
 		DM007
 		JC3015_1
 		JC3015_2
 		MK33041
-	MODE_Q2X2
+	PROTO_Q2X2
 		Q222
 		Q242
 		Q282
-	MODE_SLT
+	PROTO_SLT
 		SLT
 		VISTA
-	MODE_CG023
+	PROTO_CG023
 		CG023
 		YD829
-	MODE_BAYANG
+	PROTO_BAYANG
 		BAYANG
 		H8S3D
 		X16_AH
 		IRDRONE
-	MODE_ESKY
+	PROTO_ESKY
 		NONE
-	MODE_MT99XX
+	PROTO_MT99XX
 		MT99
 		H7
 		YZ
 		LS
 		FY805
-	MODE_MJXQ
+	PROTO_MJXQ
 		WLH08
 		X600
 		X800
 		H26D
 		E010
 		H26WH
-	MODE_SHENQI
+	PROTO_SHENQI
 		NONE
-	MODE_FY326
+	PROTO_FY326
 		FY326
 		FY319
-	MODE_SFHSS
+	PROTO_SFHSS
 		NONE
-	MODE_J6PRO
+	PROTO_J6PRO
 		NONE
-	MODE_FQ777
+	PROTO_FQ777
 		NONE
-	MODE_ASSAN
+	PROTO_ASSAN
 		NONE
-	MODE_HONTAI
-		FORMAT_HONTAI
-		FORMAT_JJRCX1
-		FORMAT_X5C1
-		FORMAT_FQ777_951
-	MODE_AFHDS2A
+	PROTO_HONTAI
+		HONTAI
+		JJRCX1
+		X5C1
+		FQ777_951
+	PROTO_AFHDS2A
 		PWM_IBUS
 		PPM_IBUS
 		PWM_SBUS
 		PPM_SBUS
-	MODE_WK2X01
+	PROTO_WK2x01
 		WK2801
 		WK2401
 		W6_5_1
 		W6_6_1
 		W6_HEL
 		W6_HEL_I
-	MODE_Q303
+	PROTO_Q303
 		Q303
 		CX35
 		CX10D
 		CX10WD
-	MODE_GW008
+	PROTO_GW008
 		NONE
-	MODE_DM002
+	PROTO_DM002
 		NONE
-	MODE_CABELL
+	PROTO_CABELL
 		CABELL_V3
 		CABELL_V3_TELEMETRY
 		CABELL_SET_FAIL_SAFE
 		CABELL_UNBIND
-	MODE_ESKY150
-	MODE_H8_3D
+	PROTO_ESKY150
+	PROTO_H8_3D
 		H8_3D
 		H20H
-		H20 Mini
-		H30 Mini
+		H20MINI
+		H30MINI
+	PROTO_CORONA
+		COR_V1
+		COR_V2
 */
 
-// RX_Num is used for model match. Using RX_Num	values different for each receiver will prevent starting a model with the false config loaded...
+// RX_Num is used for TX & RX match. Using different RX_Num values for each receiver will prevent starting a model with the false config loaded...
 // RX_Num value is between 0 and 15.
 
 // Power P_HIGH or P_LOW: High or low power setting for the transmission.

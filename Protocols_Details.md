@@ -1,55 +1,59 @@
 # Protocols details
 Here are detailed descriptions of every supported protocols (sorted by RF modules) as well as the available options for each protocol.
 
- If you want to see a list of models that use these protocols see the [Models](docs/Models.md) page.
+ If you want to see examples of model configurations see the [Models](docs/Models.md) page.
  
  The Deviation project (on which this project was based) have a useful list of models and protocols [here](http://www.deviationtx.com/wiki/supported_models).
 
-## Default Mapping of Protocols <a name="DefaultMapping"></a>
-Here is the default mapping of protocols to the 16-position protocol selection switch on the module.  You can customize these when you compile your own firmware as described in [Compiling and Programming.](docs/Compiling.md)
-
-**Note that the protocol must be selected before the unit is turned on.**
-
-Dial|Protocol|Sub_protocol|RX Num|Power|Auto Bind|Option|RF Module
-----|--------|------------|------|-----|---------|------|---------
-0|Select serial||||||
-1|FLYSKY|Flysky|0|High|No|0|A7105
-2|HUBSAN|-|0|High|No|0|A7105
-3|FRSKYD|-|0|High|No|40|CC2500
-4|HISKY|Hisky|0|High|No|0|NRF24L01
-5|V2X2|-|0|High|No|0|NRF24L01
-6|DSM|DSM2|0|High|No|6|CYRF6936
-7|DEVO|-|0|High|No|0|CYRF6936
-8|YD717|YD717|0|High|No|0|NRF24L01
-9|KN|WLTOYS|0|High|No|0|NRF24L01
-10|SYMAX|SYMAX|0|High|No|0|NRF24L01
-11|SLT|-|0|High|No|0|NRF24L01
-12|CX10|BLUE|0|High|No|0|NRF24L01
-13|CG023|CG023|0|High|No|0|NRF24L01
-14|BAYANG|-|0|High|No|0|NRF24L01
-15|SYMAX|SYMAX5C|0|High|No|0|NRF24L01
-
 ## Useful notes and definitions
 - **Extended limits supported** - A command range of -125%..+125% will be transmitted. Otherwise the default is -100%..+100% only.
-- **Channel Order** - The channel order assumed in all the documentation is AETR and it is highly recommended that you keep it this way.  You can change this in the compilation settings.  However, please indicate your channel order in all questions and posts on the forum pages. 
+- **Channel Order** - The channel order assumed in all the documentation is AETR. You can change this in the compilation settings. The module will take whatever input channel order and will rearrange them to match the output channel order required by the selected protocol. 
 - **Italic numbers** are referring to protocol/sub_protocol numbers that you should use if the radio (serial mode only) is not displaying (yet) the protocol you want to access.
 - **Autobind protocol**:
 
-1. The transmitter will automatically initiate a bind sequence on power up.  This is for models where the receiver expects to rebind every time it is powered up. In these protocols you do not need to press the bind button at power up to bind, it will be done automatically.
+1. The transmitter will automatically initiate a bind sequence on power up.  This is for models where the receiver expects to rebind every time it is powered up. In these protocols you do not need to press the bind button at power up to bind, it will be done automatically. In case a protocol is not autobind but you want to enable it, change the "Autobind" (or "Bind at powerup" on OpenTX) setting to Y for the specific model/entry.
 2. Enable Bind from channel feature:
    * Bind from channel can be globally enabled/disabled in _config.h using ENABLE_BIND_CH.
    * Bind from channel can be locally enabled/disabled by setting Autobind to Y/N per model for serial or per dial switch number for ppm.
-   * Bind channel can be choosen on any channel between 5 and 16 using BIND_CH in _config.h.
+   * Bind channel can be choosen on any channel between 5 and 16 using BIND_CH in _config.h. Default is 16.
    * Bind will only happen if all these elements are happening at the same time:
-    - Autobind = Y
-    - Throttle = LOW (<-95%)
-    - Bind channel is going from -100% to +100%
+      - Autobind = Y
+      - Throttle = LOW (<-95%)
+      - Bind channel is going from -100% to +100%
 
 * Additional notes:
   - It's recommended to combine Throttle cut with another button to drive the bind channel. This will prevent to launch a bind while flying...
   - Bind channel does not have to be assigned to a free channel. Since it only acts when Throttle is Low (and throttle cut active), it could be used on the same channel as Flip for example since you are not going to flip your model when Throttle is low... Same goes for RTH and such other features.
   - Using channel 16 for the bind channel seems the most relevant as only one protocol so far is using 16 channels which is FrSkyX. But even on FrSkyX this feature won't have any impact since there is NO valid reason to have Autobind set to Y for such a protocol.
 
+## Protocol selection in PPM mode
+The protocol selection is based on 2 parameters:
+  * selection switch: this is the rotary switch on the module numbered from 0 to 15
+      - switch position 0 is to select the Serial mode for er9x/ersky9x/OpenTX radio
+      - switch position 15 is to select the bank
+	  - switch position 1..14 will select the protocol 1..14 in the bank *X*
+  * banks are used to increase the amount of accessible protocols by the switch. There are up to 5 banks giving acces to up to 70 protocol entries (5 * 14).  To modify or verify which bank is currenlty active do the following:
+      - turn on the module with the switch on position 15
+      - the number of LED flash indicates the bank number (1 to 5 flash)
+	  - to go to the next bank, short press the bind button, this action is confirmed by the LED staying on for 1.5 sec
+
+Here is the full protocol selection procedure:
+  * turn the selection switch to 15
+  * power up the module
+  * the module displays the current bank by flashing the LED x number of times, x being between 1 and up to 5
+  * a short press on the bind button turns the LED on for 1 sec indicating that the system has changed the bank
+  * repeat operation 3 and 4 until you have reached the bank you want
+  * power off
+  * change the rotary switch to the desired position (1..14)
+  * power on
+  * enjoy
+
+Notes:
+  * **The protocol selection must be done before the module is turned on**
+  * The protocol mapping based on bank + rotary switch position can be seen/modified at the end of the file [_Config.h](/Multiprotocol/_Config.h)**
+
+## Serial mode
+Serial mode is selected by placing the rotary switch to position 0 before power on of the radio.
 
 # A7105 RF Module
 
@@ -93,6 +97,8 @@ Telemetry enabled for battery voltage and RX&TX RSSI using FrSky Hub protocol
 Option is used to change the servo refresh rate. A value of 0 gives 50Hz (min), 70 gives 400Hz (max). Specific refresh rate value can be calculated like this option=(refresh_rate-50)/5.
 
 **RX_Num is used to give a number a given RX. You must use a different RX_Num per RX. A maximum of 16 AFHDS2A RXs are supported.**
+
+If telemetry is incomplete (missing RX RSSI for example), it means that you have to upgrade your RX firmware to version 1.6 or later. You can do it from an original Flysky TX or using a STLink like explained in [this tutorial](https://www.rcgroups.com/forums/showthread.php?2677694-How-to-upgrade-Flysky-Turnigy-iA6B-RX-to-firmware-1-6-with-a-ST-Link).
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12|CH13|CH14
 ---|---|---|---|---|---|---|---|---|---|---|---|---|---
@@ -142,11 +148,8 @@ Models: FrSky receivers V8R4, V8R7 and V8FR.
 
 Extended limits supported
 
-Option for this protocol is fine frequency tuning. This value is different for each Module. To determine this value:
- - find a value where the RX accepts to bind. A good start is to use one of these values -40, 0 and 40.
- - find the values min/max where the RX loses connection. In serial mode you can change the value and see the effect live.
- - set the value to half way between min and max.
- - [video showing the process](https://youtu.be/C483uNWwAaM)
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
  
 CH1|CH2|CH3|CH4
 ---|---|---|---
@@ -159,11 +162,8 @@ Extended limits supported
 
 Telemetry enabled for A0, A1, RSSI, TSSI and Hub
 
-Option for this protocol is fine frequency tuning. This value is different for each Module. To determine this value:
- - find a value where the RX accepts to bind. A good start is to use one of these values -40, 0 and 40.
- - find the values min/max where the RX loses connection. In serial mode you can change the value and see the effect live.
- - set the value to half way between min and max.
- - [video showing the process](https://youtu.be/C483uNWwAaM)
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
@@ -176,11 +176,8 @@ Extended limits and failsafe supported
 
 Telemetry enabled for A1 (RxBatt), A2, RSSI, TSSI and Hub
 
-Option for this protocol is fine frequency tuning. This value is different for each Module. To determine this value:
- - find a value where the RX accepts to bind. A good start is to use one of these values -40, 0 and 40.
- - find the values min/max where the RX loses connection. In serial mode you can change the value and see the effect live.
- - set the value to half way between min and max.
- - [video showing the process](https://youtu.be/C483uNWwAaM)
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
 
 ### Sub_protocol CH_16 - *0*
 FCC protocol 16 channels @18ms.
@@ -215,17 +212,40 @@ Models: Futaba RXs and XK models.
 
 Extended limits and failsafe supported
 
-Option for this protocol is fine frequency tuning. This value is different for each Module. To determine this value:
- - find a value where the RX accepts to bind. A good start is to use one of these values -40, 0 and 40.
- - find the values min/max where the RX loses connection. In serial mode you can change the value and see the effect live.
- - set the value to half way between min and max.
- - [video showing the process](https://youtu.be/C483uNWwAaM)
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
 ---|---|---|---|---|---|---|---
 A|E|T|R|CH5|CH6|CH7|CH8
 
-Channels 9 to 16 are used as failsafe values for the channels 1 to 8.
+## CORONA - *37*
+Models: Corona 2.4GHz FSS and DSSS receivers.
+
+Extended limits supported
+
+Option for this protocol corresponds to fine frequency tuning. This value is different for each Module and **must** be accurate otherwise the link will not be stable.
+Check the [Frequency Tuning page](/docs/Frequency_Tuning.md) to determine it.
+
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
+---|---|---|---|---|---|---|---
+CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8
+
+### Sub_protocol COR_V1 - *0*
+Corona FSS V1 RXs
+
+### Sub_protocol COR_V2 - *1*
+Corona DSSS V2 RXs: CR8D, CR6D and CR4D
+
+To bind V2 RXs you must follow the below procedure (original):
+ - press the bind button and power on the RX
+ - launch a bind from Multi -> the RX will blink 2 times
+ - turn off the RX **and** TX(=Multi)
+ - turn on the RX **first**
+ - turn on the TX(=Multi) **second**
+ - wait for the bind to complete -> the RX will flash, stop and finally fix
+ - wait some time (more than 30 sec) before turning off the RX
+ - turn off/on the RX and test that it can reconnect instantly, if not repeat the bind procedure
 
 ***
 # CYRF6936 RF Module
@@ -245,7 +265,7 @@ Bind procedure using serial:
 - Turn on RX (RX LED fast blink).
 - Turn on TX (RX LED solid, TX LED fast blink).
 - Wait for bind on the TX to complete (TX LED solid).
-- Make sure to set the RX_Num value for model match.
+- Make sure to set a uniq RX_Num value for model match.
 - Change option to 1 to use the global ID.
 - Do not touch option/RX_Num anymore.
 
@@ -258,7 +278,7 @@ Bind procedure using PPM:
 - Wait for bind on the TX to complete (TX LED solid).
 - Press the bind button for 1 second. TX/RX is now in fixed ID mode.
 - To verify that the TX is in fixed mode: power cycle the TX, the module LED should be solid ON (no blink).
-- Note: Autobind/fixed ID mode is linked to the dial number. Which means that you can have multiple dial numbers set to the same protocol DEVO with different RX_Num and have different bind modes at the same time. It enables PPM users to get model match under DEVO.
+- Note: Autobind/fixed ID mode is linked to the RX_Num number. Which means that you can have multiple dial numbers set to the same protocol DEVO with different RX_Num and have different bind modes at the same time. It enables PPM users to get model match under DEVO.
 
 ## WK2X01 - *30*
 Extended limits supported
@@ -281,7 +301,7 @@ Bind procedure using serial:
 - Turn on RX (RX LED fast blink).
 - Turn on TX (RX LED solid, TX LED fast blink).
 - Wait for bind on the TX to complete (TX LED solid).
-- Make sure to set the RX_Num value for model match.
+- Make sure to set a uniq RX_Num value for model match.
 - Change option to 1 to use the global ID.
 - Do not touch option/RX_Num anymore.
 
@@ -294,7 +314,7 @@ Bind procedure using PPM:
 - Wait for bind on the TX to complete (TX LED solid).
 - Press the bind button for 1 second. TX/RX is now in fixed ID mode.
 - To verify that the TX is in fixed mode: power cycle the TX, the module LED should be solid ON (no blink).
-- Note: Autobind/fixed ID mode is linked to the dial number. Which means that you can have multiple dial numbers set to the same protocol WK2X01 and sub_protocol WK2801 with different RX_Num and have different bind modes at the same time. It enables PPM users to get model match.
+- Note: Autobind/fixed ID mode is linked to the RX_Num number. Which means that you can have multiple dial numbers set to the same protocol DEVO with different RX_Num and have different bind modes at the same time. It enables PPM users to get model match under DEVO.
 
 ### Sub_protocol WK2401 - *1*
 The WK2401 protocol is used to control older Walkera models.
@@ -341,7 +361,9 @@ A|E|T|R|CH5|CH6|CH7|CH8|CH9|CH10|CH11|CH12
 
 Notes:
  - model/type/number of channels indicated on the RX can be different from what the RX is in fact wanting to see. So don't hesitate to test different combinations until you have something working. Using Auto is the best way to find these settings.
- - RX ouput will always be TAER independently of the input AETR, RETA...
+ - RX output will match the Spektrum standard TAER independently of the input configuration AETR, RETA...
+ - RX output will match the Spektrum standard throw (1500µs +/- 400µs -> 1100..1900µs) for a 100% input. This is true for both Serial and PPM input. For PPM, make sure the end points PPM_MIN_100 and PPM_MAX_100 in _config.h are matching your TX ouput. The maximum ouput is 1000..2000µs based on an input of 125%.
+    - If you want to override the above and get maximum throw (old way) uncomment in _config.h the line #define DSM_FULL_THROW . In this mode to achieve standard throw use a channel weight of 84%.
 
 ### Sub_protocol DSM2_22 - *0*
 DSM2, Resolution 1024, refresh rate 22ms
@@ -354,7 +376,7 @@ DSMX, Resolution 2048, refresh rate 11ms
 ### Sub_protocol AUTO - *4*
 The "AUTO" feature enables the TX to automatically choose what are the best settings for your DSM RX and update your model protocol settings accordingly.
 
-The current radio firmware which are able to use the "AUTO" feature are ersky9x (9XR Pro, 9Xtreme, Taranis, ...) and er9x for M128 (9XR) and M2561.
+The current radio firmware which are able to use the "AUTO" feature are ersky9x (9XR Pro, 9Xtreme, Taranis, ...), er9x for M128(9XR)&M2561 and OpenTX (mostly Taranis).
 For these firmwares, you must have a telemetry enabled TX and you have to make sure you set the Telemetry "Usr proto" to "DSMx".
 Also on er9x you will need to be sure to match the polarity of the telemetry serial (normal or inverted by bitbashing), while on ersky9x you can set "Invert COM1" accordinlgy.
 
@@ -381,9 +403,9 @@ Autobind protocol
 
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9|CH10|CH11
 ---|---|---|---|---|---|---|---|---|----|----
-A|E|T|R|FLIP|RTH|PICTURE|VIDEO|HEADLESS|INVERTED|RATE
+A|E|T|R|FLIP|RTH|PICTURE|VIDEO|HEADLESS|INVERTED|RATES
 
-RATE: -100%(default)=>higher rates by enabling dynamic trims (except for Headless), 100%=>disable dynamic trims
+RATES: -100%(default)=>higher rates by enabling dynamic trims (except for Headless), 100%=>disable dynamic trims
 
 ### Sub_protocol BAYANG - *0*
 Models: EAchine H8(C) mini, BayangToys X6/X7/X9, JJRC JJ850, Floureon H101 ...
@@ -750,6 +772,8 @@ Autobind protocol
 CH1|CH2|CH3|CH4|CH5|CH6|CH7|CH8|CH9
 ---|---|---|---|---|---|---|---|---
 A|E|T|R|FLIP|RATES|PICTURE|VIDEO|HEADLESS
+
+RATES: -100%(default)=>disable dynamic trims, +100%=> higher rates by enabling dynamic trims (except for Headless)
 
 ### Sub_protocol SYMAX - *0*
 Models: Syma X5C-1/X11/X11C/X12

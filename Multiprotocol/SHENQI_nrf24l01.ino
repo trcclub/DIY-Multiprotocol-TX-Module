@@ -65,7 +65,7 @@ void SHENQI_send_packet()
 	{
 		LT8900_SetAddress(rx_tx_addr,4);
 		packet[1]=255-convert_channel_8b(RUDDER);
-		packet[2]=255-convert_channel_8b_scale(THROTTLE,0x60,0xA0);
+		packet[2]=255-convert_channel_16b_limit(THROTTLE,0x60,0xA0);
 		uint8_t freq=pgm_read_byte_near(&SHENQI_Freq[hopping_frequency_no])+(rx_tx_addr[2]&0x0F);
 		LT8900_SetChannel(freq);
 		hopping_frequency_no++;
@@ -90,7 +90,7 @@ void SHENQI_send_packet()
 
 uint16_t SHENQI_callback()
 {
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
 		SHENQI_send_packet();
 	else
 	{

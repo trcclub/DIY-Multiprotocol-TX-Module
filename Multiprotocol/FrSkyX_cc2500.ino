@@ -1,4 +1,3 @@
-
 /*  **************************
 	* By Midelic on RCGroups *
 	**************************
@@ -106,7 +105,7 @@ static void __attribute__((unused)) frskyX_build_bind_packet()
 //64=860,1024=1500,1984=2140//Taranis 125%
 static uint16_t  __attribute__((unused)) frskyX_scaleForPXX( uint8_t i )
 {	//mapped 860,2140(125%) range to 64,1984(PXX values);
-	uint16_t chan_val=(((Servo_data[i]-servo_min_125)*3)>>1)+64;
+	uint16_t chan_val=convert_channel_frsky(i)-1226;
 	if(i>7) chan_val|=2048;   // upper channels offset
 	return chan_val;
 }
@@ -244,7 +243,7 @@ uint16_t ReadFrSkyX()
 			frskyX_build_bind_packet();
 			CC2500_Strobe(CC2500_SIDLE);
 			CC2500_WriteData(packet, packet[0]+1);
-			if(IS_BIND_DONE_on)
+			if(IS_BIND_DONE)
 				state = FRSKY_BIND_DONE;
 			else
 				state++;
@@ -335,7 +334,7 @@ uint16_t initFrSkyX()
 	//************************
 	frskyX_init();
 	//
-	if(IS_AUTOBIND_FLAG_on)
+	if(IS_BIND_IN_PROGRESS)
 	{	   
 		state = FRSKY_BIND;
 		frskyX_initialize_data(1);
@@ -351,5 +350,4 @@ uint16_t initFrSkyX()
 	FrX_receive_seq = 0 ;
 	return 10000;
 }	
-
 #endif

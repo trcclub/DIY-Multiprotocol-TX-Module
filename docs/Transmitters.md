@@ -14,16 +14,16 @@ The DIY Mulitprotocol module supports industry standard PPM interface that works
 
 The same module plug is available on all versions of the module with the same signal locations. Some radios have an open collector output (Futaba, Graupner...), in this case you should add a 4.7K resistor between PPM and BATT.
 
-When using the standard PPM Tx output, the protocol selection is achieved through a 16 position rotary switch on the module. This enables 15 (0=serial) protocol/sub-protocol/options combinations to be selected.  Binding is achieved by pressing a bind button on the back of the module (see picture below) 
+When using the standard PPM Tx output, the protocol selection is achieved through a 16 position rotary switch on the module and a bank system. This enables up to 70 protocol/sub-protocol/options combinations to be selected when using 5 banks.  Binding is achieved by pressing a bind button on the back of the module (see picture below) 
 
-Since the module supports literally hundreds of protocol/sub-protocol/options combinations, you must select which of these will map to the 15 positions on the switch.  Refer to the [Compiling and Programming](Compiling.md) page for information on how to do his.
+Since the module supports literally hundreds of protocol/sub-protocol/options combinations, you must select which of these will map to the bank + positions on the switch.  Refer to the [Compiling and Programming](Compiling.md) page for information on how to do his.
 
 Even in PPM mode it may still be possible to access telemetry information from selected receivers that support telemetry (e.g. Frsky, Hubsan, DSM).  To find out more about this advanced option check out the section on the [Advanced Topics](Advanced_Topics.md) page.  
 
 For transmitter setup using the PPM protocol go to the [PPM Setup page](PPM_Setup.md)
 
 ## Serial
-Transmitters that run er9X, erSky9X or OpenTx firmwares (like the FrSky Taranis, FlySky TH9X and Turnigy 9X family of transmitters) have the option of using a fast serial communication protocol between the Tx and the DIY Multiprotocol module.  Using this serial communication protocol has some significant advantages:
+Transmitters that run er9X, erSky9X or OpenTx firmwares (like the FrSky Taranis, FlySky TH9X and Turnigy 9X family of transmitters) have the option of using a fast serial communication protocol between the Tx and the DIY Multiprotocol module by placing the rotary switch to position 0 (independently of the banks).  Using this serial communication protocol has some significant advantages:
 
 1. selecting the specific radio protocol (e.g. DSM) and the sub protocol (e.g. DSMX22) is done directly in the menu system of the Tx (see the picture below) 
 1. binding through the menu on the Tx 

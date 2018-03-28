@@ -27,7 +27,7 @@ void A7105_WriteData(uint8_t len, uint8_t channel)
 	for (i = 0; i < len; i++)
 		SPI_Write(packet[i]);
 	A7105_CSN_on;
-	if(protocol!=MODE_FLYSKY)
+	if(protocol!=PROTO_FLYSKY)
 	{
 		A7105_Strobe(A7105_STANDBY);	//Force standby mode, ie cancel any TX or RX...
 		A7105_SetTxRxMode(TX_EN);		//Switch to PA
@@ -145,7 +145,7 @@ static void A7105_SetPower_Value(int power)
 void A7105_SetPower()
 {
 	uint8_t power=A7105_BIND_POWER;
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
 		#ifdef A7105_ENABLE_LOW_POWER
 			power=IS_POWER_FLAG_on?A7105_HIGH_POWER:A7105_LOW_POWER;
 		#else
@@ -168,27 +168,58 @@ void A7105_Strobe(uint8_t address) {
 
 // Fine tune A7105 LO base frequency
 // this is required for some A7105 modules and/or RXs with inaccurate crystal oscillator
-// arg: offset in +/-kHz
-void A7105_AdjustLOBaseFreq(int16_t offset)
+void A7105_AdjustLOBaseFreq(uint8_t cmd)
 {
+	static int16_t old_offset=2048;
+	int16_t offset=1024;
+	if(cmd==0)
+	{	// Called at init of the A7105
+		old_offset=2048;
+		switch(protocol)
+		{
+			case PROTO_HUBSAN:
+				#ifdef FORCE_HUBSAN_TUNING
+					offset=(int16_t)FORCE_HUBSAN_TUNING;
+				#endif
+				break;
+			case PROTO_FLYSKY:
+				#ifdef FORCE_FLYSKY_TUNING
+					offset=(int16_t)FORCE_FLYSKY_TUNING;
+				#endif
+				break;
+			case PROTO_AFHDS2A:
+				#ifdef FORCE_AFHDS2A_TUNING
+					offset=(int16_t)FORCE_AFHDS2A_TUNING;
+				#endif
+				break;
+		}
+	}
+	if(offset==1024)	// Use channel 15 as an input
+		offset=convert_channel_16b_nolimit(CH15,-300,300);
+
+	if(old_offset==offset)	// offset is the same as before...
+			return;
+	old_offset=offset;
+
 	// LO base frequency = 32e6*(bip+(bfp/(2^16)))
-	uint8_t bip;  // LO base frequency integer part
-	uint32_t bfp; // LO base frequency fractional part
+	uint8_t bip;	// LO base frequency integer part
+	uint16_t bfp;	// LO base frequency fractional part
+	offset++;		// as per datasheet, not sure why recommended, but that's a +1kHz drift only ...
+	offset<<=1;
 	if(offset < 0)
 	{
-		bip = 0x4a; // 2368 MHz
-		bfp = 0xffff+((offset<<11)/1000)+1;
+		bip = 0x4a;	// 2368 MHz
+		bfp = 0xffff + offset;
 	}
 	else
 	{
-		bip = 0x4b; // 2400 MHz (default)
-		bfp = (offset<<11)/1000;
+		bip = 0x4b;	// 2400 MHz (default)
+		bfp = offset;
 	}
-	if(offset == 0)
-		bfp = 0x0002; // as per datasheet, not sure why recommended, but that's a +1kHz drift only ...
 	A7105_WriteReg( A7105_11_PLL_III, bip);
 	A7105_WriteReg( A7105_12_PLL_IV, (bfp >> 8) & 0xff);
 	A7105_WriteReg( A7105_13_PLL_V, bfp & 0xff);
+	//debugln("Channel: %d, offset: %d, bip: %2x, bfp: %4x", Channel_data[14], offset, bip, bfp);
 }
 
 
@@ -224,7 +255,7 @@ void A7105_Init(void)
 	uint8_t *A7105_Regs=0;
 	
 	#ifdef HUBSAN_A7105_INO
-		if(protocol==MODE_HUBSAN)
+		if(protocol==PROTO_HUBSAN)
 		{
 			A7105_WriteID(ID_NORMAL);
 			A7105_Regs=(uint8_t*)HUBSAN_A7105_regs;
@@ -234,7 +265,7 @@ void A7105_Init(void)
 		{
 			A7105_WriteID(0x5475c52A);//0x2Ac57554
 			#ifdef FLYSKY_A7105_INO
-				if(protocol==MODE_FLYSKY)
+				if(protocol==PROTO_FLYSKY)
 					A7105_Regs=(uint8_t*)FLYSKY_A7105_regs;
 				else
 			#endif
@@ -249,7 +280,7 @@ void A7105_Init(void)
 	{
 		uint8_t val=pgm_read_byte_near(&A7105_Regs[i]);
 		#ifdef FLYSKY_A7105_INO
-			if(protocol==MODE_FLYSKY && sub_protocol==CX20)
+			if(protocol==PROTO_FLYSKY && sub_protocol==CX20)
 			{
 				if(i==0x0E) val=0x01;
 				if(i==0x1F) val=0x1F;
@@ -267,7 +298,7 @@ void A7105_Init(void)
 //	A7105_ReadReg(A7105_22_IF_CALIB_I);
 //	A7105_ReadReg(A7105_24_VCO_CURCAL);
 
-	if(protocol!=MODE_HUBSAN)
+	if(protocol!=PROTO_HUBSAN)
 	{
 		//VCO Current Calibration
 		A7105_WriteReg(A7105_24_VCO_CURCAL,0x13);	//Recommended calibration from A7105 Datasheet
@@ -288,13 +319,13 @@ void A7105_Init(void)
 //	A7105_ReadReg(A7105_25_VCO_SBCAL_I);
 
 	//Reset VCO Band calibration
-	if(protocol!=MODE_HUBSAN)
-		A7105_WriteReg(A7105_25_VCO_SBCAL_I,protocol==MODE_FLYSKY?0x08:0x0A);
+	if(protocol!=PROTO_HUBSAN)
+		A7105_WriteReg(A7105_25_VCO_SBCAL_I,protocol==PROTO_FLYSKY?0x08:0x0A);
 
 	A7105_SetTxRxMode(TX_EN);
 	A7105_SetPower();
 
-	A7105_AdjustLOBaseFreq(A7105_FREQ_OFFSET);
+	A7105_AdjustLOBaseFreq(0);
 	
 	A7105_Strobe(A7105_STANDBY);
 }

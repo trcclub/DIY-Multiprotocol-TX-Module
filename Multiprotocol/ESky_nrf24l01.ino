@@ -119,8 +119,9 @@ static void __attribute__((unused)) ESKY_send_packet(uint8_t bind)
 		{
 			for (uint8_t i = 0; i < 6; i++)
 			{
-				packet[i*2]   = Servo_data[CH_AETR[i]]>>8;	//high byte of servo timing(1000-2000us)
-				packet[i*2+1] = Servo_data[CH_AETR[i]]&0xFF;	//low byte of servo timing(1000-2000us)
+				uint16_t val=convert_channel_ppm(CH_AETR[i]);
+				packet[i*2]   = val>>8;		//high byte of servo timing(1000-2000us)
+				packet[i*2+1] = val&0xFF;	//low byte of servo timing(1000-2000us)
 			}
 		}
 		rf_ch = hopping_frequency[hopping_frequency_no];
@@ -138,7 +139,7 @@ static void __attribute__((unused)) ESKY_send_packet(uint8_t bind)
 
 uint16_t ESKY_callback()
 {
-	if(IS_BIND_DONE_on)
+	if(IS_BIND_DONE)
 	{
 		if (packet_sent && NRF24L01_packet_ack() != PKT_ACKED)
 			return ESKY_PACKET_CHKTIME;
@@ -162,7 +163,7 @@ uint16_t initESKY(void)
 {
 	bind_counter = ESKY_BIND_COUNT;
 	rx_tx_addr[3] = 0xBB;
-	ESKY_init(IS_AUTOBIND_FLAG_on);
+	ESKY_init(IS_BIND_IN_PROGRESS);
 	ESKY_init2();
 	return 50000;
 }

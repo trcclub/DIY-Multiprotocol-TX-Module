@@ -32,18 +32,18 @@
 	#endif
 
 	// Dial
-	#define MODE_DIAL1_pin	2
-	#define MODE_DIAL1_port	PORTB
-	#define MODE_DIAL1_ipr  PINB
-	#define MODE_DIAL2_pin	3
-	#define MODE_DIAL2_port	PORTB
-	#define MODE_DIAL2_ipr  PINB
-	#define MODE_DIAL3_pin	4
-	#define MODE_DIAL3_port	PORTB
-	#define MODE_DIAL3_ipr  PINB
-	#define MODE_DIAL4_pin	0
-	#define MODE_DIAL4_port	PORTC
-	#define MODE_DIAL4_ipr  PINC
+	#define PROTO_DIAL1_pin	2
+	#define PROTO_DIAL1_port	PORTB
+	#define PROTO_DIAL1_ipr  PINB
+	#define PROTO_DIAL2_pin	3
+	#define PROTO_DIAL2_port	PORTB
+	#define PROTO_DIAL2_ipr  PINB
+	#define PROTO_DIAL3_pin	4
+	#define PROTO_DIAL3_port	PORTB
+	#define PROTO_DIAL3_ipr  PINB
+	#define PROTO_DIAL4_pin	0
+	#define PROTO_DIAL4_port	PORTC
+	#define PROTO_DIAL4_ipr  PINC
 
 	// PPM
 	#define PPM_pin	 3										//D3 = PD3
@@ -190,6 +190,12 @@
 		#define IS_LED_on	(LED_port & _BV(LED_pin))
 	#endif
 
+	#define	LED2_on
+	#define	LED2_off
+	#define	LED2_toggle
+	#define	LED2_output
+	#define	IS_LED2_on		0
+
 	//BIND
 	#ifdef ORANGE_TX
 		#define BIND_pin			2						//PD2
@@ -208,6 +214,7 @@
 #else //STM32_BOARD
 	#define	BIND_pin		PA0
 	#define	LED_pin			PA1
+	#define	LED2_pin		PA2
 	//
 	#define	PPM_pin			PA8								//PPM  5V tolerant
 	//
@@ -283,6 +290,13 @@
 	#define	LED_toggle		digitalWrite(LED_pin ,!digitalRead(LED_pin))
 	#define	LED_output		pinMode(LED_pin,OUTPUT)
 	#define	IS_LED_on		( digitalRead(LED_pin)==HIGH)
+
+	//iRangeX modules have a second LED
+	#define	LED2_on			digitalWrite(LED2_pin,HIGH)
+	#define	LED2_off		digitalWrite(LED2_pin,LOW)
+	#define	LED2_toggle		digitalWrite(LED2_pin ,!digitalRead(LED2_pin))
+	#define	LED2_output		pinMode(LED2_pin,OUTPUT)
+	#define	IS_LED2_on		( digitalRead(LED2_pin)==HIGH)
 
 	#define BIND_SET_INPUT		pinMode(BIND_pin,INPUT)
 	#define BIND_SET_PULLUP		digitalWrite(BIND_pin,HIGH)	

@@ -79,7 +79,7 @@ static void __attribute__((unused)) WK_build_bind_pkt(const uint8_t *init)
 
 static int16_t __attribute__((unused)) WK_get_channel(uint8_t ch, int32_t scale, int16_t center, int16_t range)
 {
-	int16_t value = map(Servo_data[CH_AETR[ch]],servo_min_100,servo_max_100,-scale,scale)+center;
+	int16_t value = convert_channel_16b_nolimit(CH_AETR[ch],-scale,scale)+center;
 	if (value < center - range) value = center - range;
 	if (value > center + range) value = center + range;
 	return value;
@@ -288,22 +288,22 @@ static void __attribute__((unused)) WK_build_beacon_pkt_2801()
 	uint8_t bind_state;
 
 	#ifdef ENABLE_PPM
-	if(mode_select && option==0 && IS_BIND_DONE_on) 			//PPM mode and option not already set and bind is finished
+	if(mode_select && option==0 && IS_BIND_DONE) 			//PPM mode and option not already set and bind is finished
 	{
 		BIND_SET_INPUT;
 		BIND_SET_PULLUP;										// set pullup
 		if(IS_BIND_BUTTON_on)
 		{
-			eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+mode_select),0x01);	// Set fixed id mode for the current model
+			eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num),0x01);	// Set fixed id mode for the current model
 			option=1;
 		}
 		BIND_SET_OUTPUT;
 	}
 	#endif //ENABLE_PPM
-    if(prev_option!=option && IS_BIND_DONE_on)
+    if(prev_option!=option && IS_BIND_DONE)
 	{
 		set_rx_tx_addr(MProtocol_id);
-		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_Num
+		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_num
 		bind_counter = WK_BIND_COUNT / 8 + 1;
 	}
 	if (option)
@@ -490,7 +490,7 @@ uint16_t WK_setup()
 	}
 	else
 	{
-		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_Num
+		rx_tx_addr[2]=rx_tx_addr[3]<<4;		// Make use of RX_num
 		bind_counter = 0;
 		phase = WK_BOUND_1;
 		BIND_DONE;

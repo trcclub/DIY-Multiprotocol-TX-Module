@@ -57,19 +57,19 @@ static void __attribute__((unused)) DEVO_add_pkt_suffix()
 {
     uint8_t bind_state;
 	#ifdef ENABLE_PPM
-	if(mode_select && option==0 && IS_BIND_DONE_on) 			//PPM mode and option not already set and bind is finished
+	if(mode_select && option==0 && IS_BIND_DONE) 			//PPM mode and option not already set and bind is finished
 	{
 		BIND_SET_INPUT;
 		BIND_SET_PULLUP;										// set pullup
 		if(IS_BIND_BUTTON_on)
 		{
-			eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+mode_select),0x01);	// Set fixed id mode for the current model
+			eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num),0x01);	// Set fixed id mode for the current model
 			option=1;
 		}
 		BIND_SET_OUTPUT;
 	}
 	#endif //ENABLE_PPM
-    if(prev_option!=option && IS_BIND_DONE_on)
+    if(prev_option!=option && IS_BIND_DONE)
 	{
 		MProtocol_id = RX_num + MProtocol_id_master;
 		bind_counter=DEVO_BIND_COUNT;
@@ -148,7 +148,7 @@ static void __attribute__((unused)) DEVO_build_data_pkt()
 	uint8_t sign = 0x0b;
 	for (uint8_t i = 0; i < 4; i++)
 	{
-		int16_t value=map(Servo_data[CH_EATR[ch_idx * 4 + i]],servo_min_100,servo_max_100,-1600,1600);//range -1600..+1600
+		int16_t value=convert_channel_16b_nolimit(CH_EATR[ch_idx * 4 + i],-1600,1600);//range -1600..+1600
 		if(value < 0)
 		{
 			value = -value;

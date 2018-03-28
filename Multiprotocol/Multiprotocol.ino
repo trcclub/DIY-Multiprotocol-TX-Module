@@ -1,4 +1,3 @@
-
 /*********************************************************
 					Multiprotocol Tx code
                by Midelic and Pascal Langer(hpnuts)
@@ -39,7 +38,7 @@
 #include "_Config.h"
 
 //Personal config file
-#if __has_include("_MyConfig.h") || defined(USE_MY_CONFIG)
+#if defined(USE_MY_CONFIG)
 #include "_MyConfig.h"
 #endif
 
@@ -76,10 +75,8 @@ uint8_t  packet[40];
 
 #define NUM_CHN 16
 // Servo data
-uint16_t Servo_data[NUM_CHN];
-uint8_t  Servo_AUX;
-uint16_t servo_max_100,servo_min_100,servo_max_125,servo_min_125;
-uint16_t servo_mid;
+uint16_t Channel_data[NUM_CHN];
+uint8_t  Channel_AUX;
 #ifdef FAILSAFE_ENABLE
 	uint16_t Failsafe_data[NUM_CHN];
 #endif
@@ -128,17 +125,20 @@ uint8_t  RX_num;
 #endif
 
 //Channel mapping for protocols
-const uint8_t CH_AETR[]={AILERON, ELEVATOR, THROTTLE, RUDDER, AUX1, AUX2, AUX3, AUX4, AUX5, AUX6, AUX7, AUX8, AUX9, AUX10};
-const uint8_t CH_TAER[]={THROTTLE, AILERON, ELEVATOR, RUDDER, AUX1, AUX2, AUX3, AUX4, AUX5, AUX6, AUX7, AUX8};
-const uint8_t CH_RETA[]={RUDDER, ELEVATOR, THROTTLE, AILERON, AUX1, AUX2, AUX3, AUX4, AUX5, AUX6, AUX7, AUX8};
-const uint8_t CH_EATR[]={ELEVATOR, AILERON, THROTTLE, RUDDER, AUX1, AUX2, AUX3, AUX4, AUX5, AUX6, AUX7, AUX8};
+const uint8_t CH_AETR[]={AILERON, ELEVATOR, THROTTLE, RUDDER, CH5, CH6, CH7, CH8, CH9, CH10, CH11, CH12, CH13, CH14, CH15, CH16};
+const uint8_t CH_TAER[]={THROTTLE, AILERON, ELEVATOR, RUDDER, CH5, CH6, CH7, CH8, CH9, CH10, CH11, CH12, CH13, CH14, CH15, CH16};
+const uint8_t CH_RETA[]={RUDDER, ELEVATOR, THROTTLE, AILERON, CH5, CH6, CH7, CH8, CH9, CH10, CH11, CH12, CH13, CH14, CH15, CH16};
+const uint8_t CH_EATR[]={ELEVATOR, AILERON, THROTTLE, RUDDER, CH5, CH6, CH7, CH8, CH9, CH10, CH11, CH12, CH13, CH14, CH15, CH16};
 
 // Mode_select variables
 uint8_t mode_select;
 uint8_t protocol_flags=0,protocol_flags2=0;
 
+#ifdef ENABLE_PPM
 // PPM variable
 volatile uint16_t PPM_data[NUM_CHN];
+volatile uint8_t  PPM_chan_max=0;
+#endif
 
 #if not defined (ORANGE_TX) && not defined (STM32_BOARD)
 //Random variable
@@ -243,6 +243,7 @@ void setup()
 	#elif defined STM32_BOARD
 		//STM32
 		afio_cfg_debug_ports(AFIO_DEBUG_NONE);
+		pinMode(LED2_pin,OUTPUT);
 		pinMode(A7105_CSN_pin,OUTPUT);
 		pinMode(CC25_CSN_pin,OUTPUT);
 		pinMode(NRF_CSN_pin,OUTPUT);
@@ -299,10 +300,10 @@ void setup()
 		SERIAL_TX_output;
 
 		// pullups
-		MODE_DIAL1_port |= _BV(MODE_DIAL1_pin);
-		MODE_DIAL2_port |= _BV(MODE_DIAL2_pin);
-		MODE_DIAL3_port |= _BV(MODE_DIAL3_pin);
-		MODE_DIAL4_port |= _BV(MODE_DIAL4_pin);
+		PROTO_DIAL1_port |= _BV(PROTO_DIAL1_pin);
+		PROTO_DIAL2_port |= _BV(PROTO_DIAL2_pin);
+		PROTO_DIAL3_port |= _BV(PROTO_DIAL3_pin);
+		PROTO_DIAL4_port |= _BV(PROTO_DIAL4_pin);
 		BIND_port |= _BV(BIND_pin);
 
 		// Timer1 config
@@ -313,6 +314,8 @@ void setup()
 		random_init();
 	#endif
 
+	LED2_on;
+	
 	// Set Chip selects
 	#ifdef A7105_CSN_pin
 		A7105_CSN_on;
@@ -339,7 +342,12 @@ void setup()
 	
 	// Read status of bind button
 	if( IS_BIND_BUTTON_on )
-		BIND_BUTTON_FLAG_on;	// If bind button pressed save the status for protocol id reset under hubsan
+	{
+		BIND_BUTTON_FLAG_on;	// If bind button pressed save the status
+		BIND_IN_PROGRESS;		// Request bind
+	}
+	else
+		BIND_DONE;
 
 	// Read status of mode select binary switch
 	// after this mode_select will be one of {0000, 0001, ..., 1111}
@@ -349,24 +357,27 @@ void setup()
 		mode_select= 0x0F -(uint8_t)(((GPIOA->regs->IDR)>>4)&0x0F);
 	#else
 		mode_select =
-			((MODE_DIAL1_ipr & _BV(MODE_DIAL1_pin)) ? 0 : 1) + 
-			((MODE_DIAL2_ipr & _BV(MODE_DIAL2_pin)) ? 0 : 2) +
-			((MODE_DIAL3_ipr & _BV(MODE_DIAL3_pin)) ? 0 : 4) +
-			((MODE_DIAL4_ipr & _BV(MODE_DIAL4_pin)) ? 0 : 8);
+			((PROTO_DIAL1_ipr & _BV(PROTO_DIAL1_pin)) ? 0 : 1) + 
+			((PROTO_DIAL2_ipr & _BV(PROTO_DIAL2_pin)) ? 0 : 2) +
+			((PROTO_DIAL3_ipr & _BV(PROTO_DIAL3_pin)) ? 0 : 4) +
+			((PROTO_DIAL4_ipr & _BV(PROTO_DIAL4_pin)) ? 0 : 8);
 	#endif
-    debugln("Mode switch reads as %d", mode_select);
+	//mode_select=1;
+    debugln("Protocol selection switch reads as %d", mode_select);
+
+	#ifdef ENABLE_PPM
+		uint8_t bank=bank_switch();
+	#endif
 
 	// Set default channels' value
-	for(uint8_t i=0;i<NUM_CHN;i++)
-		Servo_data[i]=1500;
-	Servo_data[THROTTLE]=servo_min_100;
+	InitChannel();
 	#ifdef ENABLE_PPM
-		memcpy((void *)PPM_data,Servo_data, sizeof(Servo_data));
+		InitPPM();
 	#endif
 
 	// Update LED
 	LED_off;
-	LED_output; 
+	LED_output;
 
 	//Init RF modules
 	modules_reset();
@@ -389,40 +400,47 @@ void setup()
 	//Protocol and interrupts initialization
 	if(mode_select != MODE_SERIAL)
 	{ // PPM
-		mode_select--;
-		protocol		=	PPM_prot[mode_select].protocol;
+		uint8_t line=bank*14+mode_select-1;
+		protocol		=	PPM_prot[line].protocol;
 		cur_protocol[1] = protocol;
-		sub_protocol   	=	PPM_prot[mode_select].sub_proto;
-		RX_num			=	PPM_prot[mode_select].rx_num;
+		sub_protocol   	=	PPM_prot[line].sub_proto;
+		RX_num			=	PPM_prot[line].rx_num;
 
 		//Forced frequency tuning values for CC2500 protocols
 		#if defined(FORCE_FRSKYD_TUNING) && defined(FRSKYD_CC2500_INO)
-			if(protocol==MODE_FRSKYD) 
-				option			=	FORCE_FRSKYD_TUNING;   // Use config-defined tuning value for FrSkyD
+			if(protocol==PROTO_FRSKYD) 
+				option			=	FORCE_FRSKYD_TUNING;		// Use config-defined tuning value for FrSkyD
 			else
 		#endif
 		#if defined(FORCE_FRSKYV_TUNING) && defined(FRSKYV_CC2500_INO)
-			if(protocol==MODE_FRSKYV)
-				option			=	FORCE_FRSKYV_TUNING;   // Use config-defined tuning value for FrSkyV
+			if(protocol==PROTO_FRSKYV)
+				option			=	FORCE_FRSKYV_TUNING;		// Use config-defined tuning value for FrSkyV
 			else
 		#endif
 		#if defined(FORCE_FRSKYX_TUNING) && defined(FRSKYX_CC2500_INO)
-			if(protocol==MODE_FRSKYX)
-				option			=	FORCE_FRSKYX_TUNING;   // Use config-defined tuning value for FrSkyX
+			if(protocol==PROTO_FRSKYX)
+				option			=	FORCE_FRSKYX_TUNING;		// Use config-defined tuning value for FrSkyX
 			else
 		#endif 
 		#if defined(FORCE_SFHSS_TUNING) && defined(SFHSS_CC2500_INO)
-			if (protocol==MODE_SFHSS)
-				option			=	FORCE_SFHSS_TUNING;    // Use config-defined tuning value for SFHSS
+			if (protocol==PROTO_SFHSS)
+				option			=	FORCE_SFHSS_TUNING;			// Use config-defined tuning value for SFHSS
 			else
 		#endif
-				option			=	PPM_prot[mode_select].option;   // Use radio-defined option value
+		#if defined(FORCE_CORONA_TUNING) && defined(CORONA_CC2500_INO)
+			if (protocol==PROTO_CORONA)
+				option			=	FORCE_CORONA_TUNING;		// Use config-defined tuning value for CORONA
+			else
+		#endif
+				option			=	PPM_prot[line].option;	// Use radio-defined option value
 
-		if(PPM_prot[mode_select].power)		POWER_FLAG_on;
-		if(PPM_prot[mode_select].autobind)	AUTOBIND_FLAG_on;
-		mode_select++;
-		servo_max_100=PPM_MAX_100; servo_min_100=PPM_MIN_100;
-		servo_max_125=PPM_MAX_125; servo_min_125=PPM_MIN_125;
+		if(PPM_prot[line].power)		POWER_FLAG_on;
+		if(PPM_prot[line].autobind)
+		{
+			AUTOBIND_FLAG_on;
+			BIND_IN_PROGRESS;	// Force a bind at protocol startup
+		}
+		line++;
 
 		protocol_init();
 
@@ -452,8 +470,6 @@ void setup()
 			for(uint8_t i=0;i<3;i++)
 				cur_protocol[i]=0;
 			protocol=0;
-			servo_max_100=SERIAL_MAX_100; servo_min_100=SERIAL_MIN_100;
-			servo_max_125=SERIAL_MAX_125; servo_min_125=SERIAL_MIN_125;
 			#ifdef CHECK_FOR_BOOTLOADER
 				Mprotocol_serial_init(1); 	// Configure serial and enable RX interrupt
 			#else
@@ -461,7 +477,7 @@ void setup()
 			#endif
 		#endif //ENABLE_SERIAL
 	}
-	servo_mid=servo_min_100+servo_max_100;	//In fact 2* mid_value
+	LED2_on;
 	debugln("Init complete");
 }
 
@@ -569,40 +585,43 @@ uint8_t Update_All()
 	#ifdef ENABLE_PPM
 		if(mode_select!=MODE_SERIAL && IS_PPM_FLAG_on)		// PPM mode and a full frame has been received
 		{
-			for(uint8_t i=0;i<MAX_PPM_CHANNELS;i++)
-			{ // update servo data without interrupts to prevent bad read in protocols
-				uint16_t temp_ppm ;
+			for(uint8_t i=0;i<PPM_chan_max;i++)
+			{ // update servo data without interrupts to prevent bad read
+				uint16_t val;
 				cli();										// disable global int
-				temp_ppm = PPM_data[i] ;
+				val = PPM_data[i];
 				sei();										// enable global int
-				if(temp_ppm<PPM_MIN_125) temp_ppm=PPM_MIN_125;
-				else if(temp_ppm>PPM_MAX_125) temp_ppm=PPM_MAX_125;
-				Servo_data[i]= temp_ppm ;
+				val=map16b(val,PPM_MIN_100*2,PPM_MAX_100*2,CHANNEL_MIN_100,CHANNEL_MAX_100);
+				if(val&0x8000) 					val=CHANNEL_MIN_125;
+				else if(val>CHANNEL_MAX_125)	val=CHANNEL_MAX_125;
+				Channel_data[i]=val;
 			}
 			PPM_FLAG_off;									// wait for next frame before update
 			update_channels_aux();
-			INPUT_SIGNAL_on;								//valid signal received
+			INPUT_SIGNAL_on;								// valid signal received
 			last_signal=millis();
 		}
 	#endif //ENABLE_PPM
 	update_led_status();
 	#if defined(TELEMETRY)
 		#if ( !( defined(MULTI_TELEMETRY) || defined(MULTI_STATUS) ) )
-			if( (protocol==MODE_FRSKYD) || (protocol==MODE_BAYANG) || (protocol==MODE_HUBSAN) || (protocol==MODE_AFHDS2A) || (protocol==MODE_FRSKYX) || (protocol==MODE_DSM) || (protocol==MODE_CABELL) )
+			if( (protocol==PROTO_FRSKYD) || (protocol==PROTO_BAYANG) || (protocol==PROTO_HUBSAN) || (protocol==PROTO_AFHDS2A) || (protocol==PROTO_FRSKYX) || (protocol==PROTO_DSM) || (protocol==PROTO_CABELL) )
 		#endif
 				TelemetryUpdate();
 	#endif
 	#ifdef ENABLE_BIND_CH
-		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && Servo_data[BIND_CH-1]>PPM_MAX_COMMAND && Servo_data[THROTTLE]<(servo_min_100+25))
+		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && Channel_data[BIND_CH-1]>CHANNEL_MAX_COMMAND && Channel_data[THROTTLE]<(CHANNEL_MIN_100+50))
 		{ // Autobind is on and BIND_CH went up and Throttle is low
-			CHANGE_PROTOCOL_FLAG_on;							//reload protocol to rebind
+			CHANGE_PROTOCOL_FLAG_on;							//reload protocol
+			BIND_IN_PROGRESS;									//enable bind
 			BIND_CH_PREV_on;
 		}
-		if(IS_BIND_CH_PREV_on && Servo_data[BIND_CH-1]<PPM_MIN_COMMAND)
-		{
+		if(IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_on && Channel_data[BIND_CH-1]<CHANNEL_MIN_COMMAND)
+		{ // Autobind is on and BIND_CH went down
 			BIND_CH_PREV_off;
+			//Request protocol to terminate bind
 			#if defined(FRSKYD_CC2500_INO) || defined(FRSKYX_CC2500_INO) || defined(FRSKYV_CC2500_INO)
-			if(protocol==MODE_FRSKYD || protocol==MODE_FRSKYX || protocol==MODE_FRSKYV)
+			if(protocol==PROTO_FRSKYD || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYV)
 				BIND_DONE;
 			else
 			#endif
@@ -618,27 +637,28 @@ uint8_t Update_All()
 	return 0;
 }
 
-// Update channels direction and Servo_AUX flags based on servo AUX positions
+// Update channels direction and Channel_AUX flags based on servo AUX positions
 static void update_channels_aux(void)
 {
 	//Reverse channels direction
 	#ifdef REVERSE_AILERON
-		Servo_data[AILERON]=servo_mid-Servo_data[AILERON];
+		reverse_channel(AILREON);
 	#endif
 	#ifdef REVERSE_ELEVATOR
-		Servo_data[ELEVATOR]=servo_mid-Servo_data[ELEVATOR];
+		reverse_channel(ELEVATOR);
 	#endif
 	#ifdef REVERSE_THROTTLE
-		Servo_data[THROTTLE]=servo_mid-Servo_data[THROTTLE];
+		reverse_channel(THROTTLE);
 	#endif
 	#ifdef REVERSE_RUDDER
-		Servo_data[RUDDER]=servo_mid-Servo_data[RUDDER];
+		reverse_channel(RUDDER);
 	#endif
+		
 	//Calc AUX flags
-	Servo_AUX=0;
+	Channel_AUX=0;
 	for(uint8_t i=0;i<8;i++)
-		if(Servo_data[AUX1+i]>PPM_SWITCH)
-			Servo_AUX|=1<<i;
+		if(Channel_data[CH5+i]>CHANNEL_SWITCH)
+			Channel_AUX|=1<<i;
 }
 
 // Update led status based on binding and serial
@@ -675,7 +695,7 @@ static void update_led_status(void)
 				}
 				else
 				{
-					if(IS_BIND_DONE_on)
+					if(IS_BIND_DONE)
 						LED_off;							//bind completed force led on
 					blink+=BLINK_BIND_TIME;					//blink fastly during binding
 				}
@@ -683,6 +703,88 @@ static void update_led_status(void)
 		LED_toggle;
 	}
 }
+
+#ifdef ENABLE_PPM
+uint8_t bank_switch(void)
+{
+	uint8_t bank=eeprom_read_byte((EE_ADDR)EEPROM_BANK_OFFSET);
+	if(bank>=NBR_BANKS)
+	{ // Wrong number of bank
+		eeprom_write_byte((EE_ADDR)EEPROM_BANK_OFFSET,0x00);	// set bank to 0
+		bank=0;
+	}
+	debugln("Using bank %d", bank);
+
+	phase=3;
+	uint32_t check=millis();
+	blink=millis();
+	while(mode_select==15)
+	{ //loop here if the dial is on position 15 for user to select the bank
+		if(blink<millis())
+		{
+			switch(phase & 0x03)
+			{ // Flash bank number of times
+				case 0:
+					LED_on;
+					blink+=BLINK_BANK_TIME_HIGH;
+					phase++;
+					break;
+				case 1:
+					LED_off;
+					blink+=BLINK_BANK_TIME_LOW;
+					phase++;
+					break;
+				case 2:
+					if( (phase>>2) >= bank)
+					{
+						phase=0;
+						blink+=BLINK_BANK_REPEAT;
+					}
+					else
+						phase+=2;
+					break;
+				case 3:
+					LED_output;
+					LED_off;
+					blink+=BLINK_BANK_TIME_LOW;
+					phase=0;
+					break;
+			}
+		}
+		if(check<millis())
+		{
+			//Test bind button: for AVR it's shared with the LED so some extra work is needed to check it...
+			#ifndef STM32_BOARD
+				bool led=IS_LED_on;
+				BIND_SET_INPUT;
+				BIND_SET_PULLUP;
+			#endif
+			bool test_bind=IS_BIND_BUTTON_on;
+			#ifndef STM32_BOARD
+				if(led)
+					LED_on;
+				else
+					LED_off;
+				LED_output;
+			#endif
+			if( test_bind )
+			{	// Increase bank
+				LED_on;
+				bank++;
+				if(bank>=NBR_BANKS)
+					bank=0;
+				eeprom_write_byte((EE_ADDR)EEPROM_BANK_OFFSET,bank);
+				debugln("Using bank %d", bank);
+				phase=3;
+				blink+=BLINK_BANK_REPEAT;
+				check+=2*BLINK_BANK_REPEAT;
+			}
+			check+=1;
+		}
+	}
+	return bank;
+}
+#endif
 
 inline void tx_pause()
 {
@@ -774,35 +876,30 @@ static void protocol_init()
 	
 		blink=millis();
 
-		if(IS_BIND_BUTTON_FLAG_on)
-			AUTOBIND_FLAG_on;
-		if(IS_AUTOBIND_FLAG_on)
-			BIND_IN_PROGRESS;			// Indicates bind in progress for blinking bind led
-		else
-			BIND_DONE;
-
 		PE1_on;							//NRF24L01 antenna RF3 by default
 		PE2_off;						//NRF24L01 antenna RF3 by default
 		
+		debugln("Protocol selected: %d, sub proto %d, rxnum %d, option %d", protocol, sub_protocol, RX_num, option);
+
 		switch(protocol)				// Init the requested protocol
 		{
 			#ifdef A7105_INSTALLED
 				#if defined(FLYSKY_A7105_INO)
-					case MODE_FLYSKY:
+					case PROTO_FLYSKY:
 						PE1_off;	//antenna RF1
 						next_callback = initFlySky();
 						remote_callback = ReadFlySky;
 						break;
 				#endif
 				#if defined(AFHDS2A_A7105_INO)
-					case MODE_AFHDS2A:
+					case PROTO_AFHDS2A:
 						PE1_off;	//antenna RF1
 						next_callback = initAFHDS2A();
 						remote_callback = ReadAFHDS2A;
 						break;
 				#endif
 				#if defined(HUBSAN_A7105_INO)
-					case MODE_HUBSAN:
+					case PROTO_HUBSAN:
 						PE1_off;	//antenna RF1
 						if(IS_BIND_BUTTON_FLAG_on) random_id(EEPROM_ID_OFFSET,true); // Generate new ID if bind button is pressed.
 						next_callback = initHubsan();
@@ -812,7 +909,7 @@ static void protocol_init()
 			#endif
 			#ifdef CC2500_INSTALLED
 				#if defined(FRSKYD_CC2500_INO)
-					case MODE_FRSKYD:
+					case PROTO_FRSKYD:
 						PE1_off;	//antenna RF2
 						PE2_on;
 						next_callback = initFrSky_2way();
@@ -820,7 +917,7 @@ static void protocol_init()
 						break;
 				#endif
 				#if defined(FRSKYV_CC2500_INO)
-					case MODE_FRSKYV:
+					case PROTO_FRSKYV:
 						PE1_off;	//antenna RF2
 						PE2_on;
 						next_callback = initFRSKYV();
@@ -828,7 +925,7 @@ static void protocol_init()
 						break;
 				#endif
 				#if defined(FRSKYX_CC2500_INO)
-					case MODE_FRSKYX:
+					case PROTO_FRSKYX:
 						PE1_off;	//antenna RF2
 						PE2_on;
 						next_callback = initFrSkyX();
@@ -836,36 +933,43 @@ static void protocol_init()
 						break;
 				#endif
 				#if defined(SFHSS_CC2500_INO)
-					case MODE_SFHSS:
+					case PROTO_SFHSS:
 						PE1_off;	//antenna RF2
 						PE2_on;
 						next_callback = initSFHSS();
 						remote_callback = ReadSFHSS;
 						break;
 				#endif
+				#if defined(CORONA_CC2500_INO)
+					case PROTO_CORONA:
+						PE1_off;	//antenna RF2
+						PE2_on;
+						next_callback = initCORONA();
+						remote_callback = ReadCORONA;
+						break;
+				#endif
 			#endif
 			#ifdef CYRF6936_INSTALLED
 				#if defined(DSM_CYRF6936_INO)
-					case MODE_DSM:
+					case PROTO_DSM:
 						PE2_on;	//antenna RF4
 						next_callback = initDsm();
-						//Servo_data[2]=1500;//before binding
 						remote_callback = ReadDsm;
 						break;
 				#endif
 				#if defined(DEVO_CYRF6936_INO)
-					case MODE_DEVO:
+					case PROTO_DEVO:
 						#ifdef ENABLE_PPM
 							if(mode_select) //PPM mode
 							{
 								if(IS_BIND_BUTTON_FLAG_on)
 								{
-									eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+mode_select),0x00);	// reset to autobind mode for the current model
+									eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num),0x00);	// reset to autobind mode for the current model
 									option=0;
 								}
 								else
 								{	
-									option=eeprom_read_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+mode_select));	// load previous mode: autobind or fixed id
+									option=eeprom_read_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num));	// load previous mode: autobind or fixed id
 									if(option!=1) option=0;								// if not fixed id mode then it should be autobind
 								}
 							}
@@ -876,18 +980,18 @@ static void protocol_init()
 						break;
 				#endif
 				#if defined(WK2x01_CYRF6936_INO)
-					case MODE_WK2x01:
+					case PROTO_WK2x01:
 						#ifdef ENABLE_PPM
 							if(mode_select) //PPM mode
 							{
 								if(IS_BIND_BUTTON_FLAG_on)
 								{
-									eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+mode_select),0x00);	// reset to autobind mode for the current model
+									eeprom_write_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num),0x00);	// reset to autobind mode for the current model
 									option=0;
 								}
 								else
 								{	
-									option=eeprom_read_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+mode_select));	// load previous mode: autobind or fixed id
+									option=eeprom_read_byte((EE_ADDR)(MODELMODE_EEPROM_OFFSET+RX_num));	// load previous mode: autobind or fixed id
 									if(option!=1) option=0;								// if not fixed id mode then it should be autobind
 								}
 							}
@@ -898,7 +1002,7 @@ static void protocol_init()
 						break;
 				#endif
 				#if defined(J6PRO_CYRF6936_INO)
-					case MODE_J6PRO:
+					case PROTO_J6PRO:
 						PE2_on;	//antenna RF4
 						next_callback = initJ6Pro();
 						remote_callback = ReadJ6Pro;
@@ -907,141 +1011,141 @@ static void protocol_init()
 			#endif
 			#ifdef NRF24L01_INSTALLED
 				#if defined(HISKY_NRF24L01_INO)
-					case MODE_HISKY:
+					case PROTO_HISKY:
 						next_callback=initHiSky();
 						remote_callback = hisky_cb;
 						break;
 				#endif
 				#if defined(V2X2_NRF24L01_INO)
-					case MODE_V2X2:
+					case PROTO_V2X2:
 						next_callback = initV2x2();
 						remote_callback = ReadV2x2;
 						break;
 				#endif
 				#if defined(YD717_NRF24L01_INO)
-					case MODE_YD717:
+					case PROTO_YD717:
 						next_callback=initYD717();
 						remote_callback = yd717_callback;
 						break;
 				#endif
 				#if defined(KN_NRF24L01_INO)
-					case MODE_KN:
+					case PROTO_KN:
 						next_callback = initKN();
 						remote_callback = kn_callback;
 						break;
 				#endif
 				#if defined(SYMAX_NRF24L01_INO)
-					case MODE_SYMAX:
+					case PROTO_SYMAX:
 						next_callback = initSymax();
 						remote_callback = symax_callback;
 						break;
 				#endif
 				#if defined(SLT_NRF24L01_INO)
-					case MODE_SLT:
+					case PROTO_SLT:
 						next_callback=initSLT();
 						remote_callback = SLT_callback;
 						break;
 				#endif
 				#if defined(CX10_NRF24L01_INO)
-					case MODE_Q2X2:
+					case PROTO_Q2X2:
 						sub_protocol|=0x08;		// Increase the number of sub_protocols for CX-10
-					case MODE_CX10:
+					case PROTO_CX10:
 						next_callback=initCX10();
 						remote_callback = CX10_callback;
 						break;
 				#endif
 				#if defined(CG023_NRF24L01_INO)
-					case MODE_CG023:
+					case PROTO_CG023:
 						next_callback=initCG023();
 						remote_callback = CG023_callback;
 						break;
 				#endif
 				#if defined(BAYANG_NRF24L01_INO)
-					case MODE_BAYANG:
+					case PROTO_BAYANG:
 						next_callback=initBAYANG();
 						remote_callback = BAYANG_callback;
 						break;
 				#endif
 				#if defined(ESKY_NRF24L01_INO)
-					case MODE_ESKY:
+					case PROTO_ESKY:
 						next_callback=initESKY();
 						remote_callback = ESKY_callback;
 						break;
 				#endif
 				#if defined(MT99XX_NRF24L01_INO)
-					case MODE_MT99XX:
+					case PROTO_MT99XX:
 						next_callback=initMT99XX();
 						remote_callback = MT99XX_callback;
 						break;
 				#endif
 				#if defined(MJXQ_NRF24L01_INO)
-					case MODE_MJXQ:
+					case PROTO_MJXQ:
 						next_callback=initMJXQ();
 						remote_callback = MJXQ_callback;
 						break;
 				#endif
 				#if defined(SHENQI_NRF24L01_INO)
-					case MODE_SHENQI:
+					case PROTO_SHENQI:
 						next_callback=initSHENQI();
 						remote_callback = SHENQI_callback;
 						break;
 				#endif
 				#if defined(FY326_NRF24L01_INO)
-					case MODE_FY326:
+					case PROTO_FY326:
 						next_callback=initFY326();
 						remote_callback = FY326_callback;
 						break;
 				#endif
 				#if defined(FQ777_NRF24L01_INO)
-					case MODE_FQ777:
+					case PROTO_FQ777:
 						next_callback=initFQ777();
 						remote_callback = FQ777_callback;
 						break;
 				#endif
 				#if defined(ASSAN_NRF24L01_INO)
-					case MODE_ASSAN:
+					case PROTO_ASSAN:
 						next_callback=initASSAN();
 						remote_callback = ASSAN_callback;
 						break;
 				#endif
 				#if defined(HONTAI_NRF24L01_INO)
-					case MODE_HONTAI:
+					case PROTO_HONTAI:
 						next_callback=initHONTAI();
 						remote_callback = HONTAI_callback;
 						break;
 				#endif
 				#if defined(Q303_NRF24L01_INO)
-					case MODE_Q303:
+					case PROTO_Q303:
 						next_callback=initQ303();
 						remote_callback = Q303_callback;
 						break;
 				#endif
 				#if defined(GW008_NRF24L01_INO)
-					case MODE_GW008:
+					case PROTO_GW008:
 						next_callback=initGW008();
 						remote_callback = GW008_callback;
 						break;
 				#endif
 				#if defined(DM002_NRF24L01_INO)
-					case MODE_DM002:
+					case PROTO_DM002:
 						next_callback=initDM002();
 						remote_callback = DM002_callback;
 						break;
 				#endif
 				#if defined(CABELL_NRF24L01_INO)
-					case MODE_CABELL:
+					case PROTO_CABELL:
 						next_callback=initCABELL();
 						remote_callback = CABELL_callback;
 						break;
 				#endif
 				#if defined(ESKY150_NRF24L01_INO)
-					case MODE_ESKY150:
+					case PROTO_ESKY150:
 						next_callback=initESKY150();
 						remote_callback = ESKY150_callback;
 						break;
 				#endif
 				#if defined(H8_3D_NRF24L01_INO)
-					case MODE_H8_3D:
+					case PROTO_H8_3D:
 						next_callback=initH8_3D();
 						remote_callback = H8_3D_callback;
 						break;
@@ -1051,8 +1155,8 @@ static void protocol_init()
 	}
 
 	#if defined(WAIT_FOR_BIND) && defined(ENABLE_BIND_CH)
-		if( IS_AUTOBIND_FLAG_on && ! ( IS_BIND_CH_PREV_on || IS_BIND_BUTTON_FLAG_on || (cur_protocol[1]&0x80)!=0 ) )
-		{
+		if( IS_AUTOBIND_FLAG_on && IS_BIND_CH_PREV_off && (cur_protocol[1]&0x80)==0 && mode_select == MODE_SERIAL)
+		{ // Autobind is active but no bind requested by either BIND_CH or BIND. But do not wait if in PPM mode...
 			WAIT_BIND_on;
 			return;
 		}
@@ -1085,7 +1189,7 @@ void update_serial_data()
 		RANGE_FLAG_on;
 	else
 		RANGE_FLAG_off;
-	if(rx_ok_buff[1]&0xC0)						//check autobind(0x40) & bind(0x80) together
+	if(rx_ok_buff[1]&0x40)						//check autobind
 		AUTOBIND_FLAG_on;
 	else
 		AUTOBIND_FLAG_off;
@@ -1096,53 +1200,68 @@ void update_serial_data()
 
 	//Forced frequency tuning values for CC2500 protocols
 	#if defined(FORCE_FRSKYD_TUNING) && defined(FRSKYD_CC2500_INO)
-		if(protocol==MODE_FRSKYD) 
-			option=FORCE_FRSKYD_TUNING;   // Use config-defined tuning value for FrSkyD
+		if(protocol==PROTO_FRSKYD) 
+			option=FORCE_FRSKYD_TUNING;	// Use config-defined tuning value for FrSkyD
 		else
 	#endif
 	#if defined(FORCE_FRSKYV_TUNING) && defined(FRSKYV_CC2500_INO)
-		if(protocol==MODE_FRSKYV)
-			option=FORCE_FRSKYV_TUNING;   // Use config-defined tuning value for FrSkyV
+		if(protocol==PROTO_FRSKYV)
+			option=FORCE_FRSKYV_TUNING;	// Use config-defined tuning value for FrSkyV
 		else
 	#endif
 	#if defined(FORCE_FRSKYX_TUNING) && defined(FRSKYX_CC2500_INO)
-		if(protocol==MODE_FRSKYX)
-			option=FORCE_FRSKYX_TUNING;   // Use config-defined tuning value for FrSkyX
+		if(protocol==PROTO_FRSKYX)
+			option=FORCE_FRSKYX_TUNING;	// Use config-defined tuning value for FrSkyX
 		else
 	#endif 
 	#if defined(FORCE_SFHSS_TUNING) && defined(SFHSS_CC2500_INO)
-		if (protocol==MODE_SFHSS)
-			option=FORCE_SFHSS_TUNING;    // Use config-defined tuning value for SFHSS
+		if (protocol==PROTO_SFHSS)
+			option=FORCE_SFHSS_TUNING;	// Use config-defined tuning value for SFHSS
 		else
 	#endif
-			option=rx_ok_buff[3];   // Use radio-defined option value
+	#if defined(FORCE_CORONA_TUNING) && defined(CORONA_CC2500_INO)
+		if (protocol==PROTO_CORONA)
+			option=FORCE_CORONA_TUNING;	// Use config-defined tuning value for CORONA
+		else
+	#endif
+			option=rx_ok_buff[3];		// Use radio-defined option value
 	
 	#ifdef FAILSAFE_ENABLE
 		bool failsafe=false;
 		if(rx_ok_buff[0]&0x02)
-		{ //packet contains failsafe instead of channels
+		{ // Packet contains failsafe instead of channels
 			failsafe=true;
 			rx_ok_buff[0]&=0xFD;				//remove the failsafe flag
 			FAILSAFE_VALUES_on;					//failsafe data has been received
 		}
 	#endif
+	#ifdef BONI
+		if(CH14_SW)
+			rx_ok_buff[2]=(rx_ok_buff[2]&0xF0)|((rx_ok_buff[2]+1)&0x0F);	// Extremely dangerous, do not enable this!!! This is really for a special case...
+	#endif
 	if( (rx_ok_buff[0] != cur_protocol[0]) || ((rx_ok_buff[1]&0x5F) != (cur_protocol[1]&0x5F)) || ( (rx_ok_buff[2]&0x7F) != (cur_protocol[2]&0x7F) ) )
 	{ // New model has been selected
 		CHANGE_PROTOCOL_FLAG_on;				//change protocol
 		WAIT_BIND_off;
+		if((rx_ok_buff[1]&0x80)!=0 || IS_AUTOBIND_FLAG_on)
+			BIND_IN_PROGRESS;					//launch bind right away if in autobind mode or bind is set
+		else
+			BIND_DONE;
 		protocol=(rx_ok_buff[0]==0x55?0:32) + (rx_ok_buff[1]&0x1F);	//protocol no (0-63) bits 4-6 of buff[1] and bit 0 of buf[0]
 		sub_protocol=(rx_ok_buff[2]>>4)& 0x07;	//subprotocol no (0-7) bits 4-6
 		RX_num=rx_ok_buff[2]& 0x0F;				// rx_num bits 0---3
-		debugln("New protocol selected: %d, sub proto %d, rxnum %d, option %d", protocol, sub_protocol, RX_num, option);
 	}
 	else
 		if( ((rx_ok_buff[1]&0x80)!=0) && ((cur_protocol[1]&0x80)==0) )		// Bind flag has been set
-			CHANGE_PROTOCOL_FLAG_on;			//restart protocol with bind
+		{ // Restart protocol with bind
+			CHANGE_PROTOCOL_FLAG_on;
+			BIND_IN_PROGRESS;
+		}
 		else
 			if( ((rx_ok_buff[1]&0x80)==0) && ((cur_protocol[1]&0x80)!=0) )	// Bind flag has been reset
-			{
+			{ // Request protocol to end bind
 				#if defined(FRSKYD_CC2500_INO) || defined(FRSKYX_CC2500_INO) || defined(FRSKYV_CC2500_INO)
-				if(protocol==MODE_FRSKYD || protocol==MODE_FRSKYX || protocol==MODE_FRSKYV)
+				if(protocol==PROTO_FRSKYD || protocol==PROTO_FRSKYX || protocol==PROTO_FRSKYV)
 					BIND_DONE;
 				else
 				#endif
@@ -1172,7 +1291,7 @@ void update_serial_data()
 				Failsafe_data[i]=temp;			//value range 0..2047, 0=no pulses, 2047=hold
 			else
 		#endif
-				Servo_data[i]=(temp*5)/8+860;	//value range 860<->2140 -125%<->+125%
+				Channel_data[i]=temp;			//value range 0..2047, 0=-125%, 2047=+125%
 	}
 	RX_DONOTUPDATE_off;
 	#ifdef ORANGE_TX
@@ -1301,6 +1420,7 @@ void modules_reset()
 	{
 		usart_init(USART2); 
 		usart_config_gpios_async(USART2,GPIOA,PIN_MAP[PA3].gpio_bit,GPIOA,PIN_MAP[PA2].gpio_bit,config);
+		LED2_output;
 		usart_set_baud_rate(USART2, STM32_PCLK1, baud);
 		usart_enable(USART2);
 	}
@@ -1407,11 +1527,11 @@ void pollBoot()
 #if defined(TELEMETRY)
 void PPM_Telemetry_serial_init()
 {
-	if( (protocol==MODE_FRSKYD) || (protocol==MODE_HUBSAN) || (protocol==MODE_AFHDS2A) || (protocol==MODE_BAYANG) || (protocol==MODE_CABELL) )
+	if( (protocol==PROTO_FRSKYD) || (protocol==PROTO_HUBSAN) || (protocol==PROTO_AFHDS2A) || (protocol==PROTO_BAYANG) || (protocol==PROTO_CABELL) )
 		initTXSerial( SPEED_9600 ) ;
-	if(protocol==MODE_FRSKYX)
+	if(protocol==PROTO_FRSKYX)
 		initTXSerial( SPEED_57600 ) ;
-	if(protocol==MODE_DSM)
+	if(protocol==PROTO_DSM)
 		initTXSerial( SPEED_125K ) ;
 }
 #endif
@@ -1492,20 +1612,23 @@ static uint32_t random_id(uint16_t address, uint8_t create_new)
 		uint16_t Cur_TCNT1;
 
 		Cur_TCNT1 = TCNT1 - Prev_TCNT1 ;	// Capture current Timer1 value
-		if(Cur_TCNT1<1000)
+		if(Cur_TCNT1<1600)
 			bad_frame=1;					// bad frame
 		else
-			if(Cur_TCNT1>4840)
+			if(Cur_TCNT1>4400)
 			{  //start of frame
 				if(chan>=MIN_PPM_CHANNELS)
+				{
 					PPM_FLAG_on;			// good frame received if at least 4 channels have been seen
+					if(chan>PPM_chan_max) PPM_chan_max=chan;	// Saving the number of channels received
+				}
 				chan=0;						// reset channel counter
 				bad_frame=0;
 			}
 			else
 				if(bad_frame==0)			// need to wait for start of frame
-				{  //servo values between 500us and 2420us will end up here
-					PPM_data[chan]= Cur_TCNT1>>1;;
+				{  //servo values between 800us and 2200us will end up here
+					PPM_data[chan]=Cur_TCNT1;
 					if(chan++>=MAX_PPM_CHANNELS)
 						bad_frame=1;		// don't accept any new channels
 				}

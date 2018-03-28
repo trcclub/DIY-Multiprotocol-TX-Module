@@ -19,9 +19,9 @@
 #endif
 
 // Check for minimum version of multi-module boards
-#define MIN_AVR_BOARD 102
-#define MIN_ORX_BOARD 102
-#define MIN_STM32_BOARD 103
+#define MIN_AVR_BOARD 103
+#define MIN_ORX_BOARD 103
+#define MIN_STM32_BOARD 104
 //AVR
 #if (defined(ARDUINO_MULTI_NO_BOOT) && ARDUINO_MULTI_NO_BOOT < MIN_AVR_BOARD) || (defined(ARDUINO_MULTI_FLASH_FROM_TX) && ARDUINO_MULTI_FLASH_FROM_TX < MIN_AVR_BOARD)
 	#error You need to update your Multi 4-in-1 board definition.  Open Boards Manager and update to the latest version of the Multi 4-in-1 AVR Boards.
@@ -44,13 +44,14 @@
 	#endif
 #endif
 
-// Error if CHECK_FOR_BOOTLOADER is enabled but the 'Flash from TX' bootloader or upload method isn't selected.
-#if (defined(ARDUINO_MULTI_NO_BOOT) || defined(ARDUINO_MULTI_STM32_NO_BOOT)) && defined(CHECK_FOR_BOOTLOADER)
-	#if defined(STM32_BOARD)
-		#error "You have enabled CHECK_FOR_BOOTLOADER but not selected the 'Flash from TX' upload method."
-	#else
-		#error "You have enabled CHECK_FOR_BOOTLOADER but not selected the 'Flash from TX' bootloader."
-	#endif
+// Error if CHECK_FOR_BOOTLOADER is enabled but the 'Flash from TX' bootloader
+#if defined(ARDUINO_MULTI_NO_BOOT) && defined(CHECK_FOR_BOOTLOADER)
+	#error "You have enabled CHECK_FOR_BOOTLOADER but not selected the 'Flash from TX' bootloader."
+#endif
+
+//Check number of banks
+#if NBR_BANKS < 1 || NBR_BANKS > 5
+	#error "You need to select a number of banks between 1 and 5."
 #endif
 
 //Check failsafe throttle value
@@ -79,6 +80,37 @@
 #ifdef FORCE_SFHSS_TUNING
 	#if ( FORCE_SFHSS_TUNING < -127 ) || ( FORCE_SFHSS_TUNING > 127 )
 		#error "The SFHSS forced frequency tuning value is outside of the range -127..127."
+	#endif
+#endif
+#ifdef FORCE_CORONA_TUNING
+	#if ( FORCE_CORONA_TUNING < -127 ) || ( FORCE_CORONA_TUNING > 127 )
+		#error "The CORONA forced frequency tuning value is outside of the range -127..127."
+	#endif
+#endif
+#ifdef FORCE_FLYSKY_TUNING
+	#if ( FORCE_FLYSKY_TUNING < -300 ) || ( FORCE_FLYSKY_TUNING > 300 )
+		#error "The Flysky forced frequency tuning value is outside of the range -300..300."
+	#endif
+#endif
+#ifdef FORCE_HUBSAN_TUNING
+	#if ( FORCE_HUBSAN_TUNING < -300 ) || ( FORCE_HUBSAN_TUNING > 300 )
+		#error "The Hubsan forced frequency tuning value is outside of the range -300..300."
+	#endif
+#endif
+#ifdef FORCE_AFHDS2A_TUNING
+	#if ( FORCE_AFHDS2A_TUNING < -300 ) || ( FORCE_AFHDS2A_TUNING > 300 )
+		#error "The AFHDS2A forced frequency tuning value is outside of the range -300..300."
+	#endif
+#endif
+#ifndef USE_A7105_CH15_TUNING
+	#ifndef FORCE_FLYSKY_TUNING
+		#define FORCE_FLYSKY_TUNING 0
+	#endif
+	#ifndef FORCE_HUBSAN_TUNING
+		#define FORCE_HUBSAN_TUNING 0
+	#endif
+	#ifndef FORCE_AFHDS2A_TUNING
+		#define FORCE_AFHDS2A_TUNING 0
 	#endif
 #endif
 
@@ -113,6 +145,7 @@
 	#undef	FRSKYV_CC2500_INO
 	#undef	FRSKYX_CC2500_INO
 	#undef	SFHSS_CC2500_INO
+	#undef	CORONA_CC2500_INO
 #endif
 #ifndef NRF24L01_INSTALLED
 	#undef	BAYANG_NRF24L01_INO
@@ -193,8 +226,8 @@
 #ifndef AILERON
 	#error You must select a correct channel order.
 #endif
-#if not defined(PPM_MAX_100) || not defined(PPM_MIN_100) || not defined(PPM_MAX_125) || not defined(PPM_MIN_125)
-	#error You must set correct TX end points.
+#if not defined(PPM_MAX_100) || not defined(PPM_MIN_100)
+	#error You must set correct PPM end points for your TX.
 #endif
 
 #if defined(ENABLE_BIND_CH)

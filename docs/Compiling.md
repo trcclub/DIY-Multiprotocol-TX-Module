@@ -29,7 +29,7 @@ Multiprotocol firmware is compiled using the Arduino IDE.  The guide below will 
 | <img src="images/USBasp_Programmer.jpeg" width="200" height="200"/> | <img src="images/10pin_2_6pin.JPG" width="150" height="150"/> | <img src="images/6pin_header.jpg" width="100" height="100"/> |
 | [(example aliexpress link)](https://www.aliexpress.com/item/USBasp-USB-ISP-3-3V-5V-AVR-Programmer-USB-ATMEGA8-ATMEGA128-New-10PIN-Wire-Support/2036402518.html?spm=2114.30010308.8.10.jIbHzs) | [(example ebay link)](http://www.ebay.fr/itm/10-Pin-a-6-Pin-Carte-Adaptateur-M-F-pour-AVRISP-USBASP-STK500-Noir-Bleu-WT-/291862396761?hash=item43f45abf59:g:gXsAAOSwMgdXyGnh) | [(example Digi-Key link)](http://www.digikey.com/products/en?keywords=3M%20961206-6404-AR) |
 
-**Important:** The USBasp **must** be **3.3V**.  Using a 5V USBasp will fry the RF modules as they are not 5V tolerant.
+**Important:** The USBasp **must** be **3.3V**.  Using a 5V USBasp (most blue PCB type) will fry the RF modules as they are not 5V tolerant.
 
 **Tip**: You can cut or remove the VCC line on your USBasp 6-pin adapter or ribbon cable and power the module from the radio when flashing to ensure that it receives the correct voltage.
 
@@ -51,7 +51,7 @@ The 6-pin header needs to be soldered onto the board as indicated by the red rec
 1. Double-click the **Multiprotocol.ino** file in the **Multiprotocol** folder to open the project in the Arduino IDE
 
 ### Install the Multi 4-in-1 board
-1. Follow [these instructions](/BootLoaders/README.md) to install the **Multi 4-in-1 AVR Board** in the Arduino IDE
+1. Follow [these instructions](Arduino_IDE_Boards.md) to install the **Multi 4-in-1 AVR Board** in the Arduino IDE
 
 ### Configure the Arduino IDE
 1. Under **Tools -> Board** select **'Multi 4-in-1 (Atmega328p, 3.3V, 16MHz)**
